@@ -147,7 +147,7 @@ func (h *MackerelPluginHelper) OutputValues() {
 }
 
 func (h *MackerelPluginHelper) OutputDefinitions() {
-	fmt.Print("# mackerel-agent-plugin\n{\n")
+	fmt.Println("# mackerel-agent-plugin")
 	b, err := json.Marshal(h.Graphs)
 	if err != nil {
 		fmt.Println(err)
