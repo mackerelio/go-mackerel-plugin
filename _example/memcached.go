@@ -100,7 +100,7 @@ func readStat() (map[string]float64, error) {
 		if res[0] == "STAT" {
 			stat[res[1]], err = strconv.ParseFloat(res[2], 64)
 			if err != nil {
-				fmt.Println("readStat:", err)
+				fmt.Fprintln(os.Stderr, "readStat:", err)
 			}
 		}
 		line, isPrefix, err = r.ReadLine()

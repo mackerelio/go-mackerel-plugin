@@ -52,10 +52,10 @@ func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time,
 	}
 	defer f.Close()
 
-	r := bufio.NewReader(f)
-	line, isPrefix, err := r.ReadLine()
 	stat := make(map[string]float64)
-	for err == nil && !isPrefix {
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
 		s := string(line)
 		res := strings.Split(s, "\t")
 		if len(res) != 3 {
@@ -63,22 +63,18 @@ func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time,
 		}
 		stat[res[0]], err = strconv.ParseFloat(res[1], 64)
 		if err != nil {
-			fmt.Println("fetchLastValues: ", err)
+			fmt.Fprintln(os.Stderr, "fetchLastValues: ", err)
 		}
 		timestamp, err := strconv.Atoi(res[2])
 		if err != nil {
-			fmt.Println("fetchLastValues: ", err)
+			fmt.Fprintln(os.Stderr, "fetchLastValues: ", err)
 		}
 		lastTime = time.Unix(int64(timestamp), 0)
 		if err != nil {
-			fmt.Println("fetchLastValues: ", err)
+			fmt.Fprintln(os.Stderr, "fetchLastValues: ", err)
 		}
-		line, isPrefix, err = r.ReadLine()
 	}
-	if isPrefix {
-		return nil, lastTime, errors.New("buffer size too small")
-	}
-	if err != nil {
+	if err := scanner.Err(); err != nil {
 		return stat, lastTime, err
 	}
 	return stat, lastTime, nil
@@ -90,12 +86,12 @@ func (h *MackerelPluginHelper) saveValues(values map[string]float64, now time.Ti
 		return err
 	}
 	defer f.Close()
-	w := bufio.NewWriter(f)
 
+	w := bufio.NewWriter(f)
 	for key, value := range values {
 		h.printValue(w, key, value, now)
-		w.Flush()
 	}
+	w.Flush()
 
 	return nil
 }
@@ -120,12 +116,12 @@ func (h *MackerelPluginHelper) OutputValues() {
 
 	lastStat, lastTime, err := h.fetchLastValues()
 	if err != nil {
-		fmt.Println("fetchLastValues (ignore):", err)
+		fmt.Fprintln(os.Stderr, "fetchLastValues (ignore):", err)
 	}
 
 	err = h.saveValues(stat, now)
 	if err != nil {
-		fmt.Println("saveValues: ", err)
+		fmt.Fprintln(os.Stderr, "saveValues: ", err)
 		return
 	}
 
@@ -141,7 +137,7 @@ func (h *MackerelPluginHelper) OutputValues() {
 						h.printValue(os.Stdout, key+"."+metric.Key, diff, now)
 					}
 				} else {
-					fmt.Printf("%s is not exist at last fetch\n", metric.Key)
+					fmt.Fprintf(os.Stderr, "%s is not exist at last fetch\n", metric.Key)
 				}
 			} else {
 				h.printValue(os.Stdout, key+"."+metric.Key, stat[metric.Key], now)
