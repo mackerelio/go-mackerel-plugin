@@ -14,17 +14,15 @@ import (
 
 var target string
 
-var graphs [](mph.Graphs) = [](mph.Graphs){
-	mph.Graphs{
-		Key:   "memcached.connections",
+var graphs map[string](mph.Graphs) = map[string](mph.Graphs){
+	"memcached.connections": mph.Graphs{
 		Label: "Memcached Connections",
 		Unit:  "integer",
 		Metrics: [](mph.Metrics){
 			mph.Metrics{Key: "curr_connections", Label: "Connections", Diff: false},
 		},
 	},
-	mph.Graphs{
-		Key:   "memcached.cmd",
+	"memcached.cmd": mph.Graphs{
 		Label: "Memcached Command",
 		Unit:  "integer",
 		Metrics: [](mph.Metrics){
@@ -34,8 +32,7 @@ var graphs [](mph.Graphs) = [](mph.Graphs){
 			mph.Metrics{Key: "cmd_touch", Label: "Touch", Diff: true},
 		},
 	},
-	mph.Graphs{
-		Key:   "memcached.hitmiss",
+	"memcached.hitmiss": mph.Graphs{
 		Label: "Memcached Hits/Misses",
 		Unit:  "integer",
 		Metrics: [](mph.Metrics){
@@ -51,16 +48,14 @@ var graphs [](mph.Graphs) = [](mph.Graphs){
 			mph.Metrics{Key: "touch_misses", Label: "Touch Misses", Diff: true},
 		},
 	},
-	mph.Graphs{
-		Key:   "memcached.evictions",
+	"memcached.evictions": mph.Graphs{
 		Label: "Memcached Evictions",
 		Unit:  "integer",
 		Metrics: [](mph.Metrics){
 			mph.Metrics{Key: "evictions", Label: "Evictions", Diff: true},
 		},
 	},
-	mph.Graphs{
-		Key:   "memcached.unfetched",
+	"memcached.unfetched": mph.Graphs{
 		Label: "Memcached Unfetched",
 		Unit:  "integer",
 		Metrics: [](mph.Metrics){
@@ -68,8 +63,7 @@ var graphs [](mph.Graphs) = [](mph.Graphs){
 			mph.Metrics{Key: "evicted_unfetched", Label: "Evicted unfetched", Diff: true},
 		},
 	},
-	mph.Graphs{
-		Key:   "memcached.rusage",
+	"memcached.rusage": mph.Graphs{
 		Label: "Memcached Resouce Usage",
 		Unit:  "float",
 		Metrics: [](mph.Metrics){
@@ -77,8 +71,7 @@ var graphs [](mph.Graphs) = [](mph.Graphs){
 			mph.Metrics{Key: "rusage_system", Label: "System", Diff: true},
 		},
 	},
-	mph.Graphs{
-		Key:   "memcached.bytes",
+	"memcached.bytes": mph.Graphs{
 		Label: "Memcached Traffics",
 		Unit:  "bytes",
 		Metrics: [](mph.Metrics){
@@ -88,7 +81,7 @@ var graphs [](mph.Graphs) = [](mph.Graphs){
 	},
 }
 
-func read_stat() (map[string]float64, error) {
+func readStat() (map[string]float64, error) {
 	conn, err := net.Dial("tcp", target)
 	if err != nil {
 		return nil, err
@@ -107,7 +100,7 @@ func read_stat() (map[string]float64, error) {
 		if res[0] == "STAT" {
 			stat[res[1]], err = strconv.ParseFloat(res[2], 64)
 			if err != nil {
-				fmt.Println("read_stat:", err)
+				fmt.Println("readStat:", err)
 			}
 		}
 		line, isPrefix, err = r.ReadLine()
@@ -122,25 +115,24 @@ func read_stat() (map[string]float64, error) {
 }
 
 func main() {
-	opt_host := flag.String("host", "localhost", "Hostname")
-	opt_port := flag.String("port", "11211", "Port")
-	opt_tempfile := flag.String("tempfile", "", "Temp file name")
+	optHost := flag.String("host", "localhost", "Hostname")
+	optPort := flag.String("port", "11211", "Port")
+	optTempfile := flag.String("tempfile", "", "Temp file name")
 	flag.Parse()
 
-	target = fmt.Sprintf("%s:%s", *opt_host, *opt_port)
+	target = fmt.Sprintf("%s:%s", *optHost, *optPort)
 	var tempfile string
-	if *opt_tempfile != "" {
-		tempfile = *opt_tempfile
+	if *optTempfile != "" {
+		tempfile = *optTempfile
 	} else {
-		tempfile = fmt.Sprintf("/tmp/mackerel-plugin-memcached-%s-%s", *opt_host, *opt_port)
+		tempfile = fmt.Sprintf("/tmp/mackerel-plugin-memcached-%s-%s", *optHost, *optPort)
 	}
 
-	helper := mph.MackerelPluginHelper{tempfile, read_stat, graphs}
-	fmt.Println(helper)
+	helper := mph.MackerelPluginHelper{tempfile, readStat, graphs}
 
 	if os.Getenv("MACKEREL_AGENT_PLUGIN_META") != "" {
-		helper.Output_definitions()
+		helper.OutputDefinitions()
 	} else {
-		helper.Output_values()
+		helper.OutputValues()
 	}
 }

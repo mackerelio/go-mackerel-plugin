@@ -2,6 +2,7 @@ package mackerelpluginhelper
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,26 +15,24 @@ import (
 type FetchFunc func() (map[string]float64, error)
 
 type Metrics struct {
-	Key   string
-	Label string
-	Diff  bool
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Diff  bool   `json:"diff"`
 }
 
 type Graphs struct {
-	Label   string
-	Key     string
-	Unit    string
-	Metrics []Metrics
-	Ms      []Metrics
+	Label   string    `json:"label"`
+	Unit    string    `json:"unit"`
+	Metrics []Metrics `json:"metrics"`
 }
 
 type MackerelPluginHelper struct {
-	Tempfile   string
-	Fetch_stat FetchFunc
-	Graphs     []Graphs
+	Tempfile  string
+	FetchStat FetchFunc
+	Graphs    map[string]Graphs
 }
 
-func (h *MackerelPluginHelper) print_value(w io.Writer, key string, value float64, now time.Time) {
+func (h *MackerelPluginHelper) printValue(w io.Writer, key string, value float64, now time.Time) {
 	if value == float64(int(value)) {
 		fmt.Fprintf(w, "%s\t%d\t%d\n", key, int(value), now.Unix())
 	} else {
@@ -41,15 +40,15 @@ func (h *MackerelPluginHelper) print_value(w io.Writer, key string, value float6
 	}
 }
 
-func (h *MackerelPluginHelper) fetch_last_values() (map[string]float64, time.Time, error) {
-	last_time := time.Now()
+func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time, error) {
+	lastTime := time.Now()
 
 	f, err := os.Open(h.Tempfile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, last_time, nil
+			return nil, lastTime, nil
 		}
-		return nil, last_time, err
+		return nil, lastTime, err
 	}
 	defer f.Close()
 
@@ -64,28 +63,28 @@ func (h *MackerelPluginHelper) fetch_last_values() (map[string]float64, time.Tim
 		}
 		stat[res[0]], err = strconv.ParseFloat(res[1], 64)
 		if err != nil {
-			fmt.Println("fetch_last_values: ", err)
+			fmt.Println("fetchLastValues: ", err)
 		}
 		timestamp, err := strconv.Atoi(res[2])
 		if err != nil {
-			fmt.Println("fetch_last_values: ", err)
+			fmt.Println("fetchLastValues: ", err)
 		}
-		last_time = time.Unix(int64(timestamp), 0)
+		lastTime = time.Unix(int64(timestamp), 0)
 		if err != nil {
-			fmt.Println("fetch_last_values: ", err)
+			fmt.Println("fetchLastValues: ", err)
 		}
 		line, isPrefix, err = r.ReadLine()
 	}
 	if isPrefix {
-		return nil, last_time, errors.New("buffer size too small")
+		return nil, lastTime, errors.New("buffer size too small")
 	}
 	if err != nil {
-		return stat, last_time, err
+		return stat, lastTime, err
 	}
-	return stat, last_time, nil
+	return stat, lastTime, nil
 }
 
-func (h *MackerelPluginHelper) save_values(values map[string]float64, now time.Time) error {
+func (h *MackerelPluginHelper) saveValues(values map[string]float64, now time.Time) error {
 	f, err := os.Create(h.Tempfile)
 	if err != nil {
 		return err
@@ -94,87 +93,68 @@ func (h *MackerelPluginHelper) save_values(values map[string]float64, now time.T
 	w := bufio.NewWriter(f)
 
 	for key, value := range values {
-		h.print_value(w, key, value, now)
+		h.printValue(w, key, value, now)
 		w.Flush()
 	}
 
 	return nil
 }
 
-func (h *MackerelPluginHelper) calc_diff(value float64, now time.Time, last_value float64, last_time time.Time) (float64, error) {
-	diff_time := now.Unix() - last_time.Unix()
-	if diff_time > 600 {
+func (h *MackerelPluginHelper) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
+	diffTime := now.Unix() - lastTime.Unix()
+	if diffTime > 600 {
 		return 0, errors.New("Too long duration")
 	}
 
-	diff := (value - last_value) * 60 / float64(diff_time)
+	diff := (value - lastValue) * 60 / float64(diffTime)
 	return diff, nil
 }
 
-func (h *MackerelPluginHelper) Output_values() {
+func (h *MackerelPluginHelper) OutputValues() {
 	now := time.Now()
-	stat, err := h.Fetch_stat()
+	stat, err := h.FetchStat()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	last_stat, last_time, err := h.fetch_last_values()
+	lastStat, lastTime, err := h.fetchLastValues()
 	if err != nil {
-		fmt.Println("fetch_last_values (ignore):", err)
+		fmt.Println("fetchLastValues (ignore):", err)
 	}
 
-	err = h.save_values(stat, now)
+	err = h.saveValues(stat, now)
 	if err != nil {
-		fmt.Println("save_values: ", err)
+		fmt.Println("saveValues: ", err)
 		return
 	}
 
-	for _, graph := range h.Graphs {
+	for key, graph := range h.Graphs {
 		for _, metric := range graph.Metrics {
 			if metric.Diff {
-				_, ok := last_stat[metric.Key]
+				_, ok := lastStat[metric.Key]
 				if ok {
-					diff, err := h.calc_diff(stat[metric.Key], now, last_stat[metric.Key], last_time)
+					diff, err := h.calcDiff(stat[metric.Key], now, lastStat[metric.Key], lastTime)
 					if err != nil {
 						fmt.Println(err)
 					} else {
-						h.print_value(os.Stdout, graph.Key+"."+metric.Key, diff, now)
+						h.printValue(os.Stdout, key+"."+metric.Key, diff, now)
 					}
 				} else {
 					fmt.Printf("%s is not exist at last fetch\n", metric.Key)
 				}
 			} else {
-				h.print_value(os.Stdout, graph.Key+"."+metric.Key, stat[metric.Key], now)
+				h.printValue(os.Stdout, key+"."+metric.Key, stat[metric.Key], now)
 			}
 		}
 	}
 }
 
-func (h *MackerelPluginHelper) Output_definitions() {
+func (h *MackerelPluginHelper) OutputDefinitions() {
 	fmt.Print("# mackerel-agent-plugin\n{\n")
-
-	fmt.Print("  \"graphs\": {\n")
-	for i, graph := range h.Graphs {
-		fmt.Printf("    \"%s\": {\n", graph.Key)
-		fmt.Printf("      \"label\": \"%s\",\n", graph.Label)
-		fmt.Printf("      \"unit\": \"%s\",\n", graph.Unit)
-		fmt.Print("      \"metrics\": [\n")
-		for i, metric := range graph.Metrics {
-			fmt.Printf("        {\"name\": \"%s\", ", metric.Key)
-			if i+1 < len(graph.Metrics) {
-				fmt.Printf("\"label\": \"%s\"},\n", metric.Label)
-			} else {
-				fmt.Printf("\"label\": \"%s\"}\n", metric.Label)
-			}
-		}
-		fmt.Print("      ]\n")
-		if i+1 < len(h.Graphs) {
-			fmt.Print("    },\n")
-		} else {
-			fmt.Print("    }\n")
-		}
+	b, err := json.Marshal(h.Graphs)
+	if err != nil {
+		fmt.Println(err)
 	}
-	fmt.Print("  }\n")
-	fmt.Print("}\n")
+	fmt.Println(string(b))
 }
