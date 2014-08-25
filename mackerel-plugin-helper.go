@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-type FetchFunc func() (map[string]float64, error)
-
 type Metrics struct {
 	Key   string `json:"key"`
 	Label string `json:"label"`
@@ -26,10 +24,14 @@ type Graphs struct {
 	Metrics []Metrics `json:"metrics"`
 }
 
+type MackerelPlugin interface {
+	FetchData() (map[string]float64, error)
+	GetGraphDefinition() map[string]Graphs
+	GetTempfilename() string
+}
+
 type MackerelPluginHelper struct {
-	Tempfile  string
-	FetchStat FetchFunc
-	Graphs    map[string]Graphs
+	MackerelPlugin MackerelPlugin
 }
 
 func (h *MackerelPluginHelper) printValue(w io.Writer, key string, value float64, now time.Time) {
@@ -43,7 +45,7 @@ func (h *MackerelPluginHelper) printValue(w io.Writer, key string, value float64
 func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time, error) {
 	lastTime := time.Now()
 
-	f, err := os.Open(h.Tempfile)
+	f, err := os.Open(h.MackerelPlugin.GetTempfilename())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, lastTime, nil
@@ -81,7 +83,7 @@ func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time,
 }
 
 func (h *MackerelPluginHelper) saveValues(values map[string]float64, now time.Time) error {
-	f, err := os.Create(h.Tempfile)
+	f, err := os.Create(h.MackerelPlugin.GetTempfilename())
 	if err != nil {
 		return err
 	}
@@ -108,9 +110,9 @@ func (h *MackerelPluginHelper) calcDiff(value float64, now time.Time, lastValue 
 
 func (h *MackerelPluginHelper) OutputValues() {
 	now := time.Now()
-	stat, err := h.FetchStat()
+	stat, err := h.MackerelPlugin.FetchData()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
@@ -125,7 +127,7 @@ func (h *MackerelPluginHelper) OutputValues() {
 		return
 	}
 
-	for key, graph := range h.Graphs {
+	for key, graph := range h.MackerelPlugin.GetGraphDefinition() {
 		for _, metric := range graph.Metrics {
 			if metric.Diff {
 				_, ok := lastStat[metric.Key]
@@ -148,7 +150,7 @@ func (h *MackerelPluginHelper) OutputValues() {
 
 func (h *MackerelPluginHelper) OutputDefinitions() {
 	fmt.Println("# mackerel-agent-plugin")
-	b, err := json.Marshal(h.Graphs)
+	b, err := json.Marshal(h.MackerelPlugin.GetGraphDefinition())
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -12,9 +12,7 @@ import (
 	"strings"
 )
 
-var target string
-
-var graphs map[string](mph.Graphs) = map[string](mph.Graphs){
+var graphdef map[string](mph.Graphs) = map[string](mph.Graphs){
 	"memcached.connections": mph.Graphs{
 		Label: "Memcached Connections",
 		Unit:  "integer",
@@ -81,8 +79,13 @@ var graphs map[string](mph.Graphs) = map[string](mph.Graphs){
 	},
 }
 
-func readStat() (map[string]float64, error) {
-	conn, err := net.Dial("tcp", target)
+type MemcachedPlugin struct {
+	Target   string
+	Tempfile string
+}
+
+func (m MemcachedPlugin) FetchData() (map[string]float64, error) {
+	conn, err := net.Dial("tcp", m.Target)
 	if err != nil {
 		return nil, err
 	}
@@ -114,21 +117,30 @@ func readStat() (map[string]float64, error) {
 	return nil, nil
 }
 
+func (m MemcachedPlugin) GetGraphDefinition() map[string](mph.Graphs) {
+	return graphdef
+}
+
+func (m MemcachedPlugin) GetTempfilename() string {
+	return m.Tempfile
+}
+
 func main() {
 	optHost := flag.String("host", "localhost", "Hostname")
 	optPort := flag.String("port", "11211", "Port")
 	optTempfile := flag.String("tempfile", "", "Temp file name")
 	flag.Parse()
 
-	target = fmt.Sprintf("%s:%s", *optHost, *optPort)
-	var tempfile string
+	var memcached MemcachedPlugin
+
+	memcached.Target = fmt.Sprintf("%s:%s", *optHost, *optPort)
 	if *optTempfile != "" {
-		tempfile = *optTempfile
+		memcached.Tempfile = *optTempfile
 	} else {
-		tempfile = fmt.Sprintf("/tmp/mackerel-plugin-memcached-%s-%s", *optHost, *optPort)
+		memcached.Tempfile = fmt.Sprintf("/tmp/mackerel-plugin-memcached-%s-%s", *optHost, *optPort)
 	}
 
-	helper := mph.MackerelPluginHelper{tempfile, readStat, graphs}
+	helper := mph.MackerelPluginHelper{memcached}
 
 	if os.Getenv("MACKEREL_AGENT_PLUGIN_META") != "" {
 		helper.OutputDefinitions()
