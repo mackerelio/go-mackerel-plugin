@@ -7,6 +7,7 @@ import (
 
 func TestCalcDiff(t *testing.T) {
 	var mp MackerelPlugin
+
 	val1 := 10.0
 	val2 := 0.0
 	now := time.Now()
