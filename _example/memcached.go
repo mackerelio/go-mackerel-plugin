@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	mph "github.com/mackerelio/go-mackerel-plugin-helper"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -103,7 +104,7 @@ func (m MemcachedPlugin) FetchData() (map[string]float64, error) {
 		if res[0] == "STAT" {
 			stat[res[1]], err = strconv.ParseFloat(res[2], 64)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "readStat:", err)
+				log.Println("FetchData:", err)
 			}
 		}
 	}

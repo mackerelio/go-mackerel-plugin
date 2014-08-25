@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
 )
@@ -92,19 +93,17 @@ func (h *MackerelPluginHelper) OutputValues() {
 	now := time.Now()
 	stat, err := h.FetchData()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		log.Fatalln("OutputValues: ", err)
 	}
 
 	lastStat, lastTime, err := h.fetchLastValues()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "fetchLastValues (ignore):", err)
+		log.Println("fetchLastValues (ignore):", err)
 	}
 
 	err = h.saveValues(stat, now)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "saveValues: ", err)
-		return
+		log.Fatalf("saveValues: ", err)
 	}
 
 	for key, graph := range h.GetGraphDefinition() {
@@ -114,12 +113,12 @@ func (h *MackerelPluginHelper) OutputValues() {
 				if ok {
 					diff, err := h.calcDiff(stat[metric.Key], now, lastStat[metric.Key], lastTime)
 					if err != nil {
-						fmt.Println(err)
+						log.Println("OutputValues: ", err)
 					} else {
 						h.printValue(os.Stdout, key+"."+metric.Key, diff, now)
 					}
 				} else {
-					fmt.Fprintf(os.Stderr, "%s is not exist at last fetch\n", metric.Key)
+					log.Printf("%s is not exist at last fetch\n", metric.Key)
 				}
 			} else {
 				h.printValue(os.Stdout, key+"."+metric.Key, stat[metric.Key], now)
@@ -132,7 +131,7 @@ func (h *MackerelPluginHelper) OutputDefinitions() {
 	fmt.Println("# mackerel-agent-plugin")
 	b, err := json.Marshal(h.GetGraphDefinition())
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln("OutputDefinitions: ", err)
 	}
 	fmt.Println(string(b))
 }
