@@ -1,14 +1,11 @@
 package mackerelpluginhelper
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -55,28 +52,10 @@ func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time,
 	defer f.Close()
 
 	stat := make(map[string]float64)
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		s := string(line)
-		res := strings.Split(s, "\t")
-		if len(res) != 3 {
-			break
-		}
-		stat[res[0]], err = strconv.ParseFloat(res[1], 64)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "fetchLastValues: ", err)
-		}
-		timestamp, err := strconv.Atoi(res[2])
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "fetchLastValues: ", err)
-		}
-		lastTime = time.Unix(int64(timestamp), 0)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "fetchLastValues: ", err)
-		}
-	}
-	if err := scanner.Err(); err != nil {
+	decoder := json.NewDecoder(f)
+	err = decoder.Decode(&stat)
+	lastTime = time.Unix(int64(stat["_lastTime"]), 0)
+	if err != nil {
 		return stat, lastTime, err
 	}
 	return stat, lastTime, nil
@@ -89,11 +68,12 @@ func (h *MackerelPluginHelper) saveValues(values map[string]float64, now time.Ti
 	}
 	defer f.Close()
 
-	w := bufio.NewWriter(f)
-	for key, value := range values {
-		h.printValue(w, key, value, now)
+	values["_lastTime"] = float64(now.Unix())
+	encoder := json.NewEncoder(f)
+	err = encoder.Encode(values)
+	if err != nil {
+		return err
 	}
-	w.Flush()
 
 	return nil
 }
