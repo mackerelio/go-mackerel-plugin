@@ -11,9 +11,10 @@ import (
 )
 
 type Metrics struct {
-	Key   string `json:"key"`
-	Label string `json:"label"`
-	Diff  bool   `json:"diff"`
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	Diff    bool   `json:"diff"`
+	Stacked bool   `json:"stacked"`
 }
 
 type Graphs struct {
@@ -127,9 +128,16 @@ func (h *MackerelPlugin) OutputValues() {
 	}
 }
 
+type GraphDef struct {
+	Graphs map[string]Graphs `json:"graphs"`
+}
+
 func (h *MackerelPlugin) OutputDefinitions() {
 	fmt.Println("# mackerel-agent-plugin")
-	b, err := json.Marshal(h.GetGraphDefinition())
+	var graphs GraphDef
+	graphs.Graphs = h.GetGraphDefinition()
+
+	b, err := json.Marshal(graphs)
 	if err != nil {
 		log.Fatalln("OutputDefinitions: ", err)
 	}
