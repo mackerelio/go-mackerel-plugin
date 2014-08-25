@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	mph "github.com/mackerelio/go-mackerel-plugin-helper"
+	mp "github.com/mackerelio/go-mackerel-plugin-helper"
 	"log"
 	"net"
 	"os"
@@ -12,69 +12,69 @@ import (
 	"strings"
 )
 
-var graphdef map[string](mph.Graphs) = map[string](mph.Graphs){
-	"memcached.connections": mph.Graphs{
+var graphdef map[string](mp.Graphs) = map[string](mp.Graphs){
+	"memcached.connections": mp.Graphs{
 		Label: "Memcached Connections",
 		Unit:  "integer",
-		Metrics: [](mph.Metrics){
-			mph.Metrics{Key: "curr_connections", Label: "Connections", Diff: false},
+		Metrics: [](mp.Metrics){
+			mp.Metrics{Key: "curr_connections", Label: "Connections", Diff: false},
 		},
 	},
-	"memcached.cmd": mph.Graphs{
+	"memcached.cmd": mp.Graphs{
 		Label: "Memcached Command",
 		Unit:  "integer",
-		Metrics: [](mph.Metrics){
-			mph.Metrics{Key: "cmd_get", Label: "Get", Diff: true},
-			mph.Metrics{Key: "cmd_set", Label: "Set", Diff: true},
-			mph.Metrics{Key: "cmd_flush", Label: "Flush", Diff: true},
-			mph.Metrics{Key: "cmd_touch", Label: "Touch", Diff: true},
+		Metrics: [](mp.Metrics){
+			mp.Metrics{Key: "cmd_get", Label: "Get", Diff: true},
+			mp.Metrics{Key: "cmd_set", Label: "Set", Diff: true},
+			mp.Metrics{Key: "cmd_flush", Label: "Flush", Diff: true},
+			mp.Metrics{Key: "cmd_touch", Label: "Touch", Diff: true},
 		},
 	},
-	"memcached.hitmiss": mph.Graphs{
+	"memcached.hitmiss": mp.Graphs{
 		Label: "Memcached Hits/Misses",
 		Unit:  "integer",
-		Metrics: [](mph.Metrics){
-			mph.Metrics{Key: "get_hits", Label: "Get Hits", Diff: true},
-			mph.Metrics{Key: "get_misses", Label: "Get Misses", Diff: true},
-			mph.Metrics{Key: "delete_hits", Label: "Delete Hits", Diff: true},
-			mph.Metrics{Key: "delete_misses", Label: "Delete Misses", Diff: true},
-			mph.Metrics{Key: "incr_hits", Label: "Incr Hits", Diff: true},
-			mph.Metrics{Key: "incr_misses", Label: "Incr Misses", Diff: true},
-			mph.Metrics{Key: "cas_hits", Label: "Cas Hits", Diff: true},
-			mph.Metrics{Key: "cas_misses", Label: "Cas Misses", Diff: true},
-			mph.Metrics{Key: "touch_hits", Label: "Touch Hits", Diff: true},
-			mph.Metrics{Key: "touch_misses", Label: "Touch Misses", Diff: true},
+		Metrics: [](mp.Metrics){
+			mp.Metrics{Key: "get_hits", Label: "Get Hits", Diff: true},
+			mp.Metrics{Key: "get_misses", Label: "Get Misses", Diff: true},
+			mp.Metrics{Key: "delete_hits", Label: "Delete Hits", Diff: true},
+			mp.Metrics{Key: "delete_misses", Label: "Delete Misses", Diff: true},
+			mp.Metrics{Key: "incr_hits", Label: "Incr Hits", Diff: true},
+			mp.Metrics{Key: "incr_misses", Label: "Incr Misses", Diff: true},
+			mp.Metrics{Key: "cas_hits", Label: "Cas Hits", Diff: true},
+			mp.Metrics{Key: "cas_misses", Label: "Cas Misses", Diff: true},
+			mp.Metrics{Key: "touch_hits", Label: "Touch Hits", Diff: true},
+			mp.Metrics{Key: "touch_misses", Label: "Touch Misses", Diff: true},
 		},
 	},
-	"memcached.evictions": mph.Graphs{
+	"memcached.evictions": mp.Graphs{
 		Label: "Memcached Evictions",
 		Unit:  "integer",
-		Metrics: [](mph.Metrics){
-			mph.Metrics{Key: "evictions", Label: "Evictions", Diff: true},
+		Metrics: [](mp.Metrics){
+			mp.Metrics{Key: "evictions", Label: "Evictions", Diff: true},
 		},
 	},
-	"memcached.unfetched": mph.Graphs{
+	"memcached.unfetched": mp.Graphs{
 		Label: "Memcached Unfetched",
 		Unit:  "integer",
-		Metrics: [](mph.Metrics){
-			mph.Metrics{Key: "expired_unfetched", Label: "Expired unfetched", Diff: true},
-			mph.Metrics{Key: "evicted_unfetched", Label: "Evicted unfetched", Diff: true},
+		Metrics: [](mp.Metrics){
+			mp.Metrics{Key: "expired_unfetched", Label: "Expired unfetched", Diff: true},
+			mp.Metrics{Key: "evicted_unfetched", Label: "Evicted unfetched", Diff: true},
 		},
 	},
-	"memcached.rusage": mph.Graphs{
+	"memcached.rusage": mp.Graphs{
 		Label: "Memcached Resouce Usage",
 		Unit:  "float",
-		Metrics: [](mph.Metrics){
-			mph.Metrics{Key: "rusage_user", Label: "User", Diff: true},
-			mph.Metrics{Key: "rusage_system", Label: "System", Diff: true},
+		Metrics: [](mp.Metrics){
+			mp.Metrics{Key: "rusage_user", Label: "User", Diff: true},
+			mp.Metrics{Key: "rusage_system", Label: "System", Diff: true},
 		},
 	},
-	"memcached.bytes": mph.Graphs{
+	"memcached.bytes": mp.Graphs{
 		Label: "Memcached Traffics",
 		Unit:  "bytes",
-		Metrics: [](mph.Metrics){
-			mph.Metrics{Key: "bytes_read", Label: "Read", Diff: true},
-			mph.Metrics{Key: "bytes_written", Label: "Write", Diff: true},
+		Metrics: [](mp.Metrics){
+			mp.Metrics{Key: "bytes_read", Label: "Read", Diff: true},
+			mp.Metrics{Key: "bytes_written", Label: "Write", Diff: true},
 		},
 	},
 }
@@ -114,7 +114,7 @@ func (m MemcachedPlugin) FetchData() (map[string]float64, error) {
 	return nil, nil
 }
 
-func (m MemcachedPlugin) GetGraphDefinition() map[string](mph.Graphs) {
+func (m MemcachedPlugin) GetGraphDefinition() map[string](mp.Graphs) {
 	return graphdef
 }
 
@@ -137,7 +137,7 @@ func main() {
 		memcached.Tempfile = fmt.Sprintf("/tmp/mackerel-plugin-memcached-%s-%s", *optHost, *optPort)
 	}
 
-	helper := mph.MackerelPluginHelper{memcached}
+	helper := mp.MackerelPlugin{memcached}
 
 	if os.Getenv("MACKEREL_AGENT_PLUGIN_META") != "" {
 		helper.OutputDefinitions()

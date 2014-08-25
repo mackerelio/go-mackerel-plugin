@@ -1,4 +1,4 @@
-package mackerelpluginhelper
+package mackerelplugin
 
 import (
 	"encoding/json"
@@ -22,17 +22,17 @@ type Graphs struct {
 	Metrics []Metrics `json:"metrics"`
 }
 
-type MackerelPlugin interface {
+type Plugin interface {
 	FetchData() (map[string]float64, error)
 	GetGraphDefinition() map[string]Graphs
 	GetTempfilename() string
 }
 
-type MackerelPluginHelper struct {
-	MackerelPlugin
+type MackerelPlugin struct {
+	Plugin
 }
 
-func (h *MackerelPluginHelper) printValue(w io.Writer, key string, value float64, now time.Time) {
+func (h *MackerelPlugin) printValue(w io.Writer, key string, value float64, now time.Time) {
 	if value == float64(int(value)) {
 		fmt.Fprintf(w, "%s\t%d\t%d\n", key, int(value), now.Unix())
 	} else {
@@ -40,7 +40,7 @@ func (h *MackerelPluginHelper) printValue(w io.Writer, key string, value float64
 	}
 }
 
-func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time, error) {
+func (h *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error) {
 	lastTime := time.Now()
 
 	f, err := os.Open(h.GetTempfilename())
@@ -62,7 +62,7 @@ func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time,
 	return stat, lastTime, nil
 }
 
-func (h *MackerelPluginHelper) saveValues(values map[string]float64, now time.Time) error {
+func (h *MackerelPlugin) saveValues(values map[string]float64, now time.Time) error {
 	f, err := os.Create(h.GetTempfilename())
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (h *MackerelPluginHelper) saveValues(values map[string]float64, now time.Ti
 	return nil
 }
 
-func (h *MackerelPluginHelper) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
+func (h *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
 		return 0, errors.New("Too long duration")
@@ -89,7 +89,7 @@ func (h *MackerelPluginHelper) calcDiff(value float64, now time.Time, lastValue 
 	return diff, nil
 }
 
-func (h *MackerelPluginHelper) OutputValues() {
+func (h *MackerelPlugin) OutputValues() {
 	now := time.Now()
 	stat, err := h.FetchData()
 	if err != nil {
@@ -127,7 +127,7 @@ func (h *MackerelPluginHelper) OutputValues() {
 	}
 }
 
-func (h *MackerelPluginHelper) OutputDefinitions() {
+func (h *MackerelPlugin) OutputDefinitions() {
 	fmt.Println("# mackerel-agent-plugin")
 	b, err := json.Marshal(h.GetGraphDefinition())
 	if err != nil {
