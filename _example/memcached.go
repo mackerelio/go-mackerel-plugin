@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	mph "github.com/mackerelio/go-mackerel-plugin-helper"
@@ -90,15 +89,16 @@ func (m MemcachedPlugin) FetchData() (map[string]float64, error) {
 		return nil, err
 	}
 	fmt.Fprintln(conn, "stats")
-	r := bufio.NewReader(conn)
-	line, isPrefix, err := r.ReadLine()
-
+	scanner := bufio.NewScanner(conn)
 	stat := make(map[string]float64)
-	for err == nil && !isPrefix {
+
+	for scanner.Scan() {
+		line := scanner.Text()
 		s := string(line)
 		if s == "END" {
 			return stat, nil
 		}
+
 		res := strings.Split(s, " ")
 		if res[0] == "STAT" {
 			stat[res[1]], err = strconv.ParseFloat(res[2], 64)
@@ -106,13 +106,9 @@ func (m MemcachedPlugin) FetchData() (map[string]float64, error) {
 				fmt.Fprintln(os.Stderr, "readStat:", err)
 			}
 		}
-		line, isPrefix, err = r.ReadLine()
 	}
-	if isPrefix {
-		return nil, errors.New("buffer size too small")
-	}
-	if err != nil {
-		return nil, err
+	if err := scanner.Err(); err != nil {
+		return stat, err
 	}
 	return nil, nil
 }
