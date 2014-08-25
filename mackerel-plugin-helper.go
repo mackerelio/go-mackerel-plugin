@@ -31,7 +31,7 @@ type MackerelPlugin interface {
 }
 
 type MackerelPluginHelper struct {
-	MackerelPlugin MackerelPlugin
+	MackerelPlugin
 }
 
 func (h *MackerelPluginHelper) printValue(w io.Writer, key string, value float64, now time.Time) {
@@ -45,7 +45,7 @@ func (h *MackerelPluginHelper) printValue(w io.Writer, key string, value float64
 func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time, error) {
 	lastTime := time.Now()
 
-	f, err := os.Open(h.MackerelPlugin.GetTempfilename())
+	f, err := os.Open(h.GetTempfilename())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, lastTime, nil
@@ -83,7 +83,7 @@ func (h *MackerelPluginHelper) fetchLastValues() (map[string]float64, time.Time,
 }
 
 func (h *MackerelPluginHelper) saveValues(values map[string]float64, now time.Time) error {
-	f, err := os.Create(h.MackerelPlugin.GetTempfilename())
+	f, err := os.Create(h.GetTempfilename())
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (h *MackerelPluginHelper) calcDiff(value float64, now time.Time, lastValue 
 
 func (h *MackerelPluginHelper) OutputValues() {
 	now := time.Now()
-	stat, err := h.MackerelPlugin.FetchData()
+	stat, err := h.FetchData()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -127,7 +127,7 @@ func (h *MackerelPluginHelper) OutputValues() {
 		return
 	}
 
-	for key, graph := range h.MackerelPlugin.GetGraphDefinition() {
+	for key, graph := range h.GetGraphDefinition() {
 		for _, metric := range graph.Metrics {
 			if metric.Diff {
 				_, ok := lastStat[metric.Key]
@@ -150,7 +150,7 @@ func (h *MackerelPluginHelper) OutputValues() {
 
 func (h *MackerelPluginHelper) OutputDefinitions() {
 	fmt.Println("# mackerel-agent-plugin")
-	b, err := json.Marshal(h.MackerelPlugin.GetGraphDefinition())
+	b, err := json.Marshal(h.GetGraphDefinition())
 	if err != nil {
 		fmt.Println(err)
 	}
