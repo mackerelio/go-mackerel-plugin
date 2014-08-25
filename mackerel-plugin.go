@@ -11,7 +11,7 @@ import (
 )
 
 type Metrics struct {
-	Key     string `json:"key"`
+	Name    string `json:"name"`
 	Label   string `json:"label"`
 	Diff    bool   `json:"diff"`
 	Stacked bool   `json:"stacked"`
@@ -110,19 +110,19 @@ func (h *MackerelPlugin) OutputValues() {
 	for key, graph := range h.GetGraphDefinition() {
 		for _, metric := range graph.Metrics {
 			if metric.Diff {
-				_, ok := lastStat[metric.Key]
+				_, ok := lastStat[metric.Name]
 				if ok {
-					diff, err := h.calcDiff(stat[metric.Key], now, lastStat[metric.Key], lastTime)
+					diff, err := h.calcDiff(stat[metric.Name], now, lastStat[metric.Name], lastTime)
 					if err != nil {
 						log.Println("OutputValues: ", err)
 					} else {
-						h.printValue(os.Stdout, key+"."+metric.Key, diff, now)
+						h.printValue(os.Stdout, key+"."+metric.Name, diff, now)
 					}
 				} else {
-					log.Printf("%s is not exist at last fetch\n", metric.Key)
+					log.Printf("%s is not exist at last fetch\n", metric.Name)
 				}
 			} else {
-				h.printValue(os.Stdout, key+"."+metric.Key, stat[metric.Key], now)
+				h.printValue(os.Stdout, key+"."+metric.Name, stat[metric.Name], now)
 			}
 		}
 	}
