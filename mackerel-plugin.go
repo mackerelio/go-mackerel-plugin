@@ -24,13 +24,18 @@ type Graphs struct {
 }
 
 type Plugin interface {
-	FetchData() (map[string]float64, error)
-	GetGraphDefinition() map[string]Graphs
-	GetTempfilename() string
+	FetchMetrics() (map[string]float64, error)
+	GraphDefinition() map[string]Graphs
 }
 
 type MackerelPlugin struct {
 	Plugin
+	Tempfile string
+}
+
+func NewMackerelPlugin(plugin Plugin) MackerelPlugin {
+	mp := MackerelPlugin{plugin, "/tmp/mackerel-plugin-default"}
+	return mp
 }
 
 func (h *MackerelPlugin) printValue(w io.Writer, key string, value float64, now time.Time) {
@@ -44,7 +49,7 @@ func (h *MackerelPlugin) printValue(w io.Writer, key string, value float64, now 
 func (h *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error) {
 	lastTime := time.Now()
 
-	f, err := os.Open(h.GetTempfilename())
+	f, err := os.Open(h.Tempfilename())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, lastTime, nil
@@ -64,7 +69,7 @@ func (h *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error
 }
 
 func (h *MackerelPlugin) saveValues(values map[string]float64, now time.Time) error {
-	f, err := os.Create(h.GetTempfilename())
+	f, err := os.Create(h.Tempfilename())
 	if err != nil {
 		return err
 	}
@@ -90,9 +95,13 @@ func (h *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float6
 	return diff, nil
 }
 
+func (h *MackerelPlugin) Tempfilename() string {
+	return h.Tempfile
+}
+
 func (h *MackerelPlugin) OutputValues() {
 	now := time.Now()
-	stat, err := h.FetchData()
+	stat, err := h.FetchMetrics()
 	if err != nil {
 		log.Fatalln("OutputValues: ", err)
 	}
@@ -107,7 +116,7 @@ func (h *MackerelPlugin) OutputValues() {
 		log.Fatalf("saveValues: ", err)
 	}
 
-	for key, graph := range h.GetGraphDefinition() {
+	for key, graph := range h.GraphDefinition() {
 		for _, metric := range graph.Metrics {
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
@@ -135,7 +144,7 @@ type GraphDef struct {
 func (h *MackerelPlugin) OutputDefinitions() {
 	fmt.Println("# mackerel-agent-plugin")
 	var graphs GraphDef
-	graphs.Graphs = h.GetGraphDefinition()
+	graphs.Graphs = h.GraphDefinition()
 
 	b, err := json.Marshal(graphs)
 	if err != nil {
