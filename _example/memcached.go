@@ -125,9 +125,10 @@ func main() {
 	flag.Parse()
 
 	var memcached MemcachedPlugin
-	helper := mp.NewMackerelPlugin(memcached)
 
 	memcached.Target = fmt.Sprintf("%s:%s", *optHost, *optPort)
+	helper := mp.NewMackerelPlugin(memcached)
+
 	if *optTempfile != "" {
 		helper.Tempfile = *optTempfile
 	} else {
