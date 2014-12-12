@@ -11,10 +11,11 @@ import (
 )
 
 type Metrics struct {
-	Name    string `json:"name"`
-	Label   string `json:"label"`
-	Diff    bool   `json:"diff"`
-	Stacked bool   `json:"stacked"`
+	Name    string  `json:"name"`
+	Label   string  `json:"label"`
+	Diff    bool    `json:"diff"`
+	Stacked bool    `json:"stacked"`
+	Scale   float64 `json:"scale"`
 }
 
 type Graphs struct {
@@ -131,6 +132,8 @@ func (h *MackerelPlugin) OutputValues() {
 					log.Printf("%s is not exist at last fetch\n", metric.Name)
 				}
 			}
+
+			value *= metric.Scale
 
 			h.printValue(os.Stdout, key+"."+metric.Name, value, now)
 		}
