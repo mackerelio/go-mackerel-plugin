@@ -53,9 +53,9 @@ var graphdef map[string](Graphs) = map[string](Graphs){
         Label: "JVM Old Space memory",
         Unit:  "float",
         Metrics: [](mp.Metrics){
-            mp.Metrics{Name: "OGCMX", Label: "Old max", Diff: false, Scale: 1000},
-            mp.Metrics{Name: "OGC", Label: "Old current", Diff: false, Scale: 1000},
-            mp.Metrics{Name: "OU", Label: "Old used", Diff: false, Scale: 1000},
+            mp.Metrics{Name: "OGCMX", Label: "Old max", Diff: false, Scale: 1024},
+            mp.Metrics{Name: "OGC", Label: "Old current", Diff: false, Scale: 1024},
+            mp.Metrics{Name: "OU", Label: "Old used", Diff: false, Scale: 1024},
         },
     },
 }
