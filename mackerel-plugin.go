@@ -118,7 +118,7 @@ func (h *MackerelPlugin) OutputValues() {
 
 	for key, graph := range h.GraphDefinition() {
 		for _, metric := range graph.Metrics {
-			value := metric[metric.Name]
+			value := stat[metric.Name]
 
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
