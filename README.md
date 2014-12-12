@@ -40,3 +40,23 @@ But current Mackerel API can accept only absolute values, so differential values
 `Diff` of `Metrics` is a flag wheather values must be treated as counter or not.
 If this flag is set, this package calculate differential values automatically with current values and previous values, which are saved to a temporally file.
 
+## Adjust Scale Value
+
+Some status values such as `jstat` memory usage are provided as scaled values.
+For example, `OGC` value are provided KB scale.
+
+`Scale` of `Metrics` is a multiplier for adjustment of the scale values.
+
+```golang
+var graphdef map[string](Graphs) = map[string](Graphs){
+    "jvm.old_space": mp.Graphs{
+        Label: "JVM Old Space memory",
+        Unit:  "float",
+        Metrics: [](mp.Metrics){
+            mp.Metrics{Name: "OGCMX", Label: "Old max", Diff: false, Scale: 1000},
+            mp.Metrics{Name: "OGC", Label: "Old current", Diff: false, Scale: 1000},
+            mp.Metrics{Name: "OU", Label: "Old used", Diff: false, Scale: 1000},
+        },
+    },
+}
+```
