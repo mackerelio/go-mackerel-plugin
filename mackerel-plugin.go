@@ -123,18 +123,16 @@ func (h *MackerelPlugin) OutputValues() {
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
 				if ok {
-					diff, err := h.calcDiff(value, now, lastStat[metric.Name], lastTime)
+					value, err = h.calcDiff(value, now, lastStat[metric.Name], lastTime)
 					if err != nil {
 						log.Println("OutputValues: ", err)
-					} else {
-						h.printValue(os.Stdout, key+"."+metric.Name, diff, now)
 					}
 				} else {
 					log.Printf("%s is not exist at last fetch\n", metric.Name)
 				}
-			} else {
-				h.printValue(os.Stdout, key+"."+metric.Name, value, now)
 			}
+
+			h.printValue(os.Stdout, key+"."+metric.Name, value, now)
 		}
 	}
 }
