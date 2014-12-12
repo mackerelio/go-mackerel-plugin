@@ -118,10 +118,12 @@ func (h *MackerelPlugin) OutputValues() {
 
 	for key, graph := range h.GraphDefinition() {
 		for _, metric := range graph.Metrics {
+			value := metric[metric.Name]
+
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
 				if ok {
-					diff, err := h.calcDiff(stat[metric.Name], now, lastStat[metric.Name], lastTime)
+					diff, err := h.calcDiff(value, now, lastStat[metric.Name], lastTime)
 					if err != nil {
 						log.Println("OutputValues: ", err)
 					} else {
@@ -131,7 +133,7 @@ func (h *MackerelPlugin) OutputValues() {
 					log.Printf("%s is not exist at last fetch\n", metric.Name)
 				}
 			} else {
-				h.printValue(os.Stdout, key+"."+metric.Name, stat[metric.Name], now)
+				h.printValue(os.Stdout, key+"."+metric.Name, value, now)
 			}
 		}
 	}
