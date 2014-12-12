@@ -133,10 +133,9 @@ func (h *MackerelPlugin) OutputValues() {
 				}
 			}
 
-			if metric.Scale == 0 {
-				metric.Scale = 1.0
+			if metric.Scale != 0 {
+				value *= metric.Scale
 			}
-			value *= metric.Scale
 
 			h.printValue(os.Stdout, key+"."+metric.Name, value, now)
 		}
