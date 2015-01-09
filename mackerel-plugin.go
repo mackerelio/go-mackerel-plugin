@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"time"
 )
@@ -40,6 +41,11 @@ func NewMackerelPlugin(plugin Plugin) MackerelPlugin {
 }
 
 func (h *MackerelPlugin) printValue(w io.Writer, key string, value float64, now time.Time) {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		log.Printf("Invalid value: key = %s, value = %f\n", key, value)
+		return
+	}
+
 	if value == float64(int(value)) {
 		fmt.Fprintf(w, "%s\t%d\t%d\n", key, int(value), now.Unix())
 	} else {
