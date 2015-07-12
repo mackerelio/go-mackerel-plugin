@@ -14,7 +14,7 @@ func TestCalcDiff(t *testing.T) {
 	now := time.Now()
 	last := time.Unix(now.Unix()-10, 0)
 
-	diff, err := mp.calcDiff(val1, now, val2, last, false)
+	diff, err := mp.calcDiff(val1, now, val2, last, "")
 	if diff != 60 {
 		t.Errorf("calcDiff: %f should be %f", diff, 60.0)
 	}
@@ -31,7 +31,7 @@ func TestCalcDiffWithUInt32OverflowWithSigned(t *testing.T) {
 	lastval := (math.MaxUint32) - 10.0
 	last := time.Unix(now.Unix()-60, 0)
 
-	diff, err := mp.calcDiff(val, now, lastval, last, false)
+	diff, err := mp.calcDiff(val, now, lastval, last, "int32")
 	if diff > 0 {
 		t.Errorf("calcDiff: last: %f, now: %f, %f should be negative", val, lastval, diff)
 	}
@@ -48,7 +48,7 @@ func TestCalcDiffWithUInt32Overflow(t *testing.T) {
 	lastval := (math.MaxUint32) - 10.0
 	last := time.Unix(now.Unix()-60, 0)
 
-	diff, err := mp.calcDiff(val, now, lastval, last, true)
+	diff, err := mp.calcDiff(val, now, lastval, last, "uint32")
 	if diff != 20 {
 		t.Errorf("calcDiff: last: %f, now: %f, %f should be %f", val, lastval, diff, 20.0)
 	}
