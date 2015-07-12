@@ -12,11 +12,13 @@ import (
 )
 
 type Metrics struct {
-	Name    string  `json:"name"`
-	Label   string  `json:"label"`
-	Diff    bool    `json:"diff"`
-	Stacked bool    `json:"stacked"`
-	Scale   float64 `json:"scale"`
+	Name     string  `json:"name"`
+	Label    string  `json:"label"`
+	Diff     bool    `json:"diff"`
+	Counter  bool    `json:"counter"`
+	Unsigned bool    `json:"unsigned"`
+	Stacked  bool    `json:"stacked"`
+	Scale    float64 `json:"scale"`
 }
 
 type Graphs struct {
@@ -92,13 +94,19 @@ func (h *MackerelPlugin) saveValues(values map[string]float64, now time.Time) er
 	return nil
 }
 
-func (h *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
+func (h *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time, counter bool) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
 		return 0, errors.New("Too long duration")
 	}
 
 	diff := (value - lastValue) * 60 / float64(diffTime)
+
+	// Negative value means counter reset.
+	if counter && diff < 0 {
+		diff = diff + math.MaxUint32
+	}
+
 	return diff, nil
 }
 
@@ -130,7 +138,7 @@ func (h *MackerelPlugin) OutputValues() {
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
 				if ok {
-					value, err = h.calcDiff(value, now, lastStat[metric.Name], lastTime)
+					value, err = h.calcDiff(value, now, lastStat[metric.Name], lastTime, metric.Counter)
 					if err != nil {
 						log.Println("OutputValues: ", err)
 					}
@@ -143,7 +151,9 @@ func (h *MackerelPlugin) OutputValues() {
 				value *= metric.Scale
 			}
 
-			h.printValue(os.Stdout, key+"."+metric.Name, value, now)
+			if metric.Unsigned == false || value < 0.0 {
+				h.printValue(os.Stdout, key+"."+metric.Name, value, now)
+			}
 		}
 	}
 }
