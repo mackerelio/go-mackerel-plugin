@@ -44,12 +44,16 @@ func NewMackerelPlugin(plugin Plugin) MackerelPlugin {
 }
 
 func (h *MackerelPlugin) printValue(w io.Writer, key string, value interface{}, now time.Time) {
-	if reflect.TypeOf(value).String() == "float64" && (math.IsNaN(value.(float64)) || math.IsInf(value.(float64), 0)) {
+	valueType := reflect.TypeOf(value)
+	if valueType == nil {
+		return
+	}
+	if valueType.String() == "float64" && (math.IsNaN(value.(float64)) || math.IsInf(value.(float64), 0)) {
 		log.Printf("Invalid value: key = %s, value = %f\n", key, value)
 		return
 	}
 
-	switch reflect.TypeOf(value).String() {
+	switch valueType.String() {
 	case "uint32":
 		fmt.Fprintf(w, "%s\t%d\t%d\n", key, value.(uint32), now.Unix())
 	case "uint64":
@@ -158,8 +162,12 @@ func (h *MackerelPlugin) OutputValues() {
 		for _, metric := range graph.Metrics {
 			var value interface{}
 			value = stat[metric.Name]
+			valueType := reflect.TypeOf(value)
+			if valueType == nil {
+				continue
+			}
 
-			switch reflect.TypeOf(value).String() {
+			switch valueType.String() {
 			case "string":
 				switch metric.Type {
 				case "uint64":
