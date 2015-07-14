@@ -23,15 +23,15 @@ func TestCalcDiff(t *testing.T) {
 	}
 }
 
-func TestCalcDiffWithUInt32OverflowWithSigned(t *testing.T) {
+func TestCalcDiffWithUInt32WithReset(t *testing.T) {
 	var mp MackerelPlugin
 
-	val := 10.0
+	val := uint32(10)
 	now := time.Now()
-	lastval := (math.MaxUint32) - 10.0
+	lastval := math.MaxUint32 - uint32(10)
 	last := time.Unix(now.Unix()-60, 0)
 
-	diff, err := mp.calcDiff(val, now, lastval, last)
+	diff, err := mp.calcDiffUint32(val, now, lastval, last)
 	if diff > 0 {
 		t.Errorf("calcDiff: last: %f, now: %f, %f should be negative", val, lastval, diff)
 	}
