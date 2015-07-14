@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -16,7 +17,6 @@ type Metrics struct {
 	Name    string  `json:"name"`
 	Label   string  `json:"label"`
 	Diff    bool    `json:"diff"`
-	Counter bool    `json:"counter"`
 	Type    string  `json:"type"`
 	Stacked bool    `json:"stacked"`
 	Scale   float64 `json:"scale"`
@@ -117,18 +117,6 @@ func (h *MackerelPlugin) calcDiffUint32(value uint32, now time.Time, lastValue u
 
 	diff := float64((value-lastValue)*60) / float64(diffTime)
 
-	/*
-		  diff := value - lastValue
-		  fmt.Printf("%d, %d, %d, %d, %d\n", lastValue, value, diff, (diff + math.MaxUint32), uint32(lastDiff*10))
-			// Negative value means counter reset.
-			if diff < 0 && (diff+math.MaxUint32) < uint32(lastDiff*10) {
-				diff = diff + math.MaxUint32
-			}
-
-			revisedDiff := float64(diff*60) / float64(diffTime)
-
-			return revisedDiff, nil
-	*/
 	if lastValue < value || diff < lastDiff*10 {
 		return diff, nil
 	}
@@ -168,7 +156,18 @@ func (h *MackerelPlugin) OutputValues() {
 
 	for key, graph := range h.GraphDefinition() {
 		for _, metric := range graph.Metrics {
-			value := stat[metric.Name]
+			var value interface{}
+			value = stat[metric.Name]
+
+			switch reflect.TypeOf(value).String() {
+			case "string":
+				switch metric.Type {
+				case "uint64":
+					value, _ = strconv.ParseUint(value.(string), 10, 64)
+				case "float64":
+					value, _ = strconv.ParseFloat(value.(string), 64)
+				}
+			}
 
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
