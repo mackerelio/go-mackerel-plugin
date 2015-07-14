@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"log"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -91,6 +91,10 @@ func (m MemcachedPlugin) FetchMetrics() (map[string]interface{}, error) {
 		return nil, err
 	}
 	fmt.Fprintln(conn, "stats")
+	return m.ParseStats(conn)
+}
+
+func (m MemcachedPlugin) ParseStats(conn io.Reader) (map[string]interface{}, error) {
 	scanner := bufio.NewScanner(conn)
 	stat := make(map[string]interface{})
 
@@ -104,10 +108,6 @@ func (m MemcachedPlugin) FetchMetrics() (map[string]interface{}, error) {
 		res := strings.Split(s, " ")
 		if res[0] == "STAT" {
 			stat[res[1]] = res[2]
-			//strconv.ParseFloat(res[2], 64)
-			if err != nil {
-				log.Println("FetchMetrics:", err)
-			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
