@@ -109,40 +109,45 @@ func (h *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float6
 	return diff, nil
 }
 
-func (h *MackerelPlugin) calcDiffUint32(value uint32, now time.Time, lastValue uint32, lastTime time.Time) (float64, error) {
+func (h *MackerelPlugin) calcDiffUint32(value uint32, now time.Time, lastValue uint32, lastTime time.Time, lastDiff float64) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
 		return 0, errors.New("Too long duration")
 	}
 
-	diff := value - lastValue
+	diff := float64((value-lastValue)*60) / float64(diffTime)
 
-	// Negative value means counter reset.
-	if diff < 0 {
-		diff = diff + math.MaxUint32
+	/*
+		  diff := value - lastValue
+		  fmt.Printf("%d, %d, %d, %d, %d\n", lastValue, value, diff, (diff + math.MaxUint32), uint32(lastDiff*10))
+			// Negative value means counter reset.
+			if diff < 0 && (diff+math.MaxUint32) < uint32(lastDiff*10) {
+				diff = diff + math.MaxUint32
+			}
+
+			revisedDiff := float64(diff*60) / float64(diffTime)
+
+			return revisedDiff, nil
+	*/
+	if lastValue < value || diff < lastDiff*10 {
+		return diff, nil
 	}
+	return 0.0, errors.New("Counter seems to be reseted.")
 
-	revisedDiff := float64(diff*60) / float64(diffTime)
-
-	return revisedDiff, nil
 }
 
-func (h *MackerelPlugin) calcDiffUint64(value uint64, now time.Time, lastValue uint64, lastTime time.Time) (float64, error) {
+func (h *MackerelPlugin) calcDiffUint64(value uint64, now time.Time, lastValue uint64, lastTime time.Time, lastDiff float64) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
 		return 0, errors.New("Too long duration")
 	}
 
-	diff := value - lastValue
+	diff := float64((value-lastValue)*60) / float64(diffTime)
 
-	// Negative value means counter reset.
-	if diff < 0 {
-		diff = diff + math.MaxUint64
+	if lastValue < value || diff < lastDiff*10 {
+		return diff, nil
 	}
-
-	revisedDiff := float64(diff*60) / float64(diffTime)
-
-	return revisedDiff, nil
+	return 0.0, errors.New("Counter seems to be reseted.")
 }
 
 func (h *MackerelPlugin) Tempfilename() string {
@@ -161,11 +166,6 @@ func (h *MackerelPlugin) OutputValues() {
 		log.Println("fetchLastValues (ignore):", err)
 	}
 
-	err = h.saveValues(stat, now)
-	if err != nil {
-		log.Fatalf("saveValues: ", err)
-	}
-
 	for key, graph := range h.GraphDefinition() {
 		for _, metric := range graph.Metrics {
 			value := stat[metric.Name]
@@ -173,11 +173,14 @@ func (h *MackerelPlugin) OutputValues() {
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
 				if ok {
+					lastDiff := lastStat[".last_diff."+metric.Name]
 					switch metric.Type {
 					case "uint32":
-						value, err = h.calcDiffUint32(value.(uint32), now, lastStat[metric.Name].(uint32), lastTime)
+						value, err = h.calcDiffUint32(value.(uint32), now, lastStat[metric.Name].(uint32), lastTime, lastDiff.(float64))
+						stat[".last_diff."+metric.Name] = value
 					case "uint64":
-						value, err = h.calcDiffUint64(value.(uint64), now, lastStat[metric.Name].(uint64), lastTime)
+						value, err = h.calcDiffUint64(value.(uint64), now, lastStat[metric.Name].(uint64), lastTime, lastDiff.(float64))
+						stat[".last_diff."+metric.Name] = value
 					default:
 						value, err = h.calcDiff(value.(float64), now, lastStat[metric.Name].(float64), lastTime)
 					}
@@ -203,6 +206,12 @@ func (h *MackerelPlugin) OutputValues() {
 			h.printValue(os.Stdout, key+"."+metric.Name, value, now)
 		}
 	}
+
+	err = h.saveValues(stat, now)
+	if err != nil {
+		log.Fatalf("saveValues: ", err)
+	}
+
 }
 
 type GraphDef struct {
