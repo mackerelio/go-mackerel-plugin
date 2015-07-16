@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"reflect"
 	"strconv"
 	"time"
 )
@@ -44,22 +43,17 @@ func NewMackerelPlugin(plugin Plugin) MackerelPlugin {
 }
 
 func (h *MackerelPlugin) printValue(w io.Writer, key string, value interface{}, now time.Time) {
-	valueType := reflect.TypeOf(value)
-	if valueType == nil {
-		return
-	}
-	if valueType.String() == "float64" && (math.IsNaN(value.(float64)) || math.IsInf(value.(float64), 0)) {
-		log.Printf("Invalid value: key = %s, value = %f\n", key, value)
-		return
-	}
-
-	switch valueType.String() {
-	case "uint32":
+	switch value.(type) {
+	case uint32:
 		fmt.Fprintf(w, "%s\t%d\t%d\n", key, value.(uint32), now.Unix())
-	case "uint64":
+	case uint64:
 		fmt.Fprintf(w, "%s\t%d\t%d\n", key, value.(uint64), now.Unix())
-	default:
-		fmt.Fprintf(w, "%s\t%f\t%d\n", key, value, now.Unix())
+	case float64:
+		if math.IsNaN(value.(float64)) || math.IsInf(value.(float64), 0) {
+			log.Printf("Invalid value: key = %s, value = %f\n", key, value)
+		} else {
+			fmt.Fprintf(w, "%s\t%f\t%d\n", key, value.(float64), now.Unix())
+		}
 	}
 }
 
@@ -162,31 +156,30 @@ func (h *MackerelPlugin) OutputValues() {
 		for _, metric := range graph.Metrics {
 			var value interface{}
 			value = stat[metric.Name]
-			valueType := reflect.TypeOf(value)
-			if valueType == nil {
-				continue
-			}
-
-			switch valueType.String() {
-			case "string":
+			switch value.(type) {
+			case string:
 				switch metric.Type {
+				case "uint32":
+					value, _ = strconv.ParseUint(value.(string), 10, 32)
 				case "uint64":
 					value, _ = strconv.ParseUint(value.(string), 10, 64)
-				case "float64":
+				default:
 					value, _ = strconv.ParseFloat(value.(string), 64)
 				}
+			default:
+				continue
 			}
 
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
 				if ok {
-					lastDiff := lastStat[".last_diff."+metric.Name]
+					lastDiff := lastStat[".last_diff."+metric.Name].(float64)
 					switch metric.Type {
 					case "uint32":
-						value, err = h.calcDiffUint32(value.(uint32), now, lastStat[metric.Name].(uint32), lastTime, lastDiff.(float64))
+						value, err = h.calcDiffUint32(value.(uint32), now, lastStat[metric.Name].(uint32), lastTime, lastDiff)
 						stat[".last_diff."+metric.Name] = value
 					case "uint64":
-						value, err = h.calcDiffUint64(value.(uint64), now, lastStat[metric.Name].(uint64), lastTime, lastDiff.(float64))
+						value, err = h.calcDiffUint64(value.(uint64), now, lastStat[metric.Name].(uint64), lastTime, lastDiff)
 						stat[".last_diff."+metric.Name] = value
 					default:
 						value, err = h.calcDiff(value.(float64), now, lastStat[metric.Name].(float64), lastTime)
