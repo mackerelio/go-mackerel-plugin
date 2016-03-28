@@ -135,7 +135,7 @@ func (h *MackerelPlugin) OutputValues() {
 						log.Println("OutputValues: ", err)
 					}
 				} else {
-					log.Printf("%s is not exist at last fetch\n", metric.Name)
+					log.Printf("%s does not exist at last fetch\n", metric.Name)
 				}
 			}
 
