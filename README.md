@@ -1,3 +1,7 @@
+This package is deprecated. You should use [go-mackerel-plugin-helper](https://github.com/mackerelio/go-mackerel-plugin-helper).
+==========
+
+
 go-mackerel-plugin [![Build Status](https://travis-ci.org/mackerelio/go-mackerel-plugin.svg?branch=master)](https://travis-ci.org/mackerelio/go-mackerel-plugin)
 ==================
 
