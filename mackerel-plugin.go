@@ -8,39 +8,78 @@ import (
 	"log"
 	"math"
 	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 )
 
+// Metrics represents definition of a metric
 type Metrics struct {
 	Name    string  `json:"name"`
 	Label   string  `json:"label"`
-	Diff    bool    `json:"diff"`
+	Diff    bool    `json:"-"`
 	Stacked bool    `json:"stacked"`
-	Scale   float64 `json:"scale"`
+	Scale   float64 `json:"-"`
 }
 
+// Graphs represents definition of a graph
 type Graphs struct {
 	Label   string    `json:"label"`
 	Unit    string    `json:"unit"`
 	Metrics []Metrics `json:"metrics"`
 }
 
+// Plugin is old interface of mackerel-plugin
 type Plugin interface {
 	FetchMetrics() (map[string]float64, error)
 	GraphDefinition() map[string]Graphs
 }
 
+// PluginWithPrefix is recommended interface
+type PluginWithPrefix interface {
+	Plugin
+	MetricKeyPrefix() string
+}
+
+// MackerelPlugin is for mackerel-agent-plugins
 type MackerelPlugin struct {
 	Plugin
 	Tempfile string
+	diff     *bool
+	writer   io.Writer
 }
 
+// NewMackerelPlugin returns new MackrelPlugin
 func NewMackerelPlugin(plugin Plugin) MackerelPlugin {
-	mp := MackerelPlugin{plugin, "/tmp/mackerel-plugin-default"}
-	return mp
+	return MackerelPlugin{Plugin: plugin}
 }
 
-func (h *MackerelPlugin) printValue(w io.Writer, key string, value float64, now time.Time) {
+func (mp *MackerelPlugin) getWriter() io.Writer {
+	if mp.writer == nil {
+		mp.writer = os.Stdout
+	}
+	return mp.writer
+}
+
+func (mp *MackerelPlugin) hasDiff() bool {
+	if mp.diff == nil {
+		diff := false
+		mp.diff = &diff
+	DiffCheck:
+		for _, graph := range mp.GraphDefinition() {
+			for _, metric := range graph.Metrics {
+				if metric.Diff {
+					*mp.diff = true
+					break DiffCheck
+				}
+			}
+		}
+	}
+	return *mp.diff
+}
+
+func (mp *MackerelPlugin) printValue(w io.Writer, key string, value float64, now time.Time) {
 	if math.IsNaN(value) || math.IsInf(value, 0) {
 		log.Printf("Invalid value: key = %s, value = %f\n", key, value)
 		return
@@ -53,10 +92,13 @@ func (h *MackerelPlugin) printValue(w io.Writer, key string, value float64, now 
 	}
 }
 
-func (h *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error) {
+func (mp *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error) {
+	if !mp.hasDiff() {
+		return nil, time.Unix(0, 0), nil
+	}
 	lastTime := time.Now()
 
-	f, err := os.Open(h.Tempfilename())
+	f, err := os.Open(mp.tempfilename())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, lastTime, nil
@@ -75,8 +117,8 @@ func (h *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error
 	return stat, lastTime, nil
 }
 
-func (h *MackerelPlugin) saveValues(values map[string]float64, now time.Time) error {
-	f, err := os.Create(h.Tempfilename())
+func (mp *MackerelPlugin) saveValues(values map[string]float64, now time.Time) error {
+	f, err := os.Create(mp.tempfilename())
 	if err != nil {
 		return err
 	}
@@ -92,7 +134,7 @@ func (h *MackerelPlugin) saveValues(values map[string]float64, now time.Time) er
 	return nil
 }
 
-func (h *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
+func (mp *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
 		return 0, errors.New("Too long duration")
@@ -102,35 +144,57 @@ func (h *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float6
 	return diff, nil
 }
 
-func (h *MackerelPlugin) Tempfilename() string {
-	return h.Tempfile
+func (mp *MackerelPlugin) tempfilename() string {
+	if mp.Tempfile == "" {
+		mp.Tempfile = mp.generateTempfilePath(os.Args[0])
+	}
+	return mp.Tempfile
 }
 
-func (h *MackerelPlugin) OutputValues() {
+var tempfileSanitizeReg = regexp.MustCompile(`[^-_.A-Za-z0-9]`)
+
+func (mp *MackerelPlugin) generateTempfilePath(path string) string {
+	var prefix string
+	if p, ok := mp.Plugin.(PluginWithPrefix); ok {
+		prefix = p.MetricKeyPrefix()
+	} else {
+		name := filepath.Base(path)
+		prefix = strings.TrimPrefix(tempfileSanitizeReg.ReplaceAllString(name, "_"), "mackerel-plugin-")
+	}
+	filename := fmt.Sprintf("mackerel-plugin-%s", prefix)
+	dir := os.Getenv("MACKEREL_PLUGIN_WORKDIR")
+	if dir == "" {
+		dir = os.TempDir()
+	}
+	return filepath.Join(dir, filename)
+}
+
+// OutputValues output the metrics
+func (mp *MackerelPlugin) OutputValues() {
 	now := time.Now()
-	stat, err := h.FetchMetrics()
+	stat, err := mp.FetchMetrics()
 	if err != nil {
 		log.Fatalln("OutputValues: ", err)
 	}
 
-	lastStat, lastTime, err := h.fetchLastValues()
+	lastStat, lastTime, err := mp.fetchLastValues()
 	if err != nil {
 		log.Println("fetchLastValues (ignore):", err)
 	}
 
-	err = h.saveValues(stat, now)
+	err = mp.saveValues(stat, now)
 	if err != nil {
-		log.Fatalf("saveValues: ", err)
+		log.Fatalf("saveValues: %s", err)
 	}
 
-	for key, graph := range h.GraphDefinition() {
+	for key, graph := range mp.GraphDefinition() {
 		for _, metric := range graph.Metrics {
 			value := stat[metric.Name]
 
 			if metric.Diff {
 				_, ok := lastStat[metric.Name]
 				if ok {
-					value, err = h.calcDiff(value, now, lastStat[metric.Name], lastTime)
+					value, err = mp.calcDiff(value, now, lastStat[metric.Name], lastTime)
 					if err != nil {
 						log.Println("OutputValues: ", err)
 					}
@@ -143,23 +207,34 @@ func (h *MackerelPlugin) OutputValues() {
 				value *= metric.Scale
 			}
 
-			h.printValue(os.Stdout, key+"."+metric.Name, value, now)
+			mp.printValue(mp.getWriter(), key+"."+metric.Name, value, now)
 		}
 	}
 }
 
+// GraphDef is graph definitions
 type GraphDef struct {
 	Graphs map[string]Graphs `json:"graphs"`
 }
 
-func (h *MackerelPlugin) OutputDefinitions() {
+// OutputDefinitions outputs graph definitions
+func (mp *MackerelPlugin) OutputDefinitions() {
 	fmt.Println("# mackerel-agent-plugin")
 	var graphs GraphDef
-	graphs.Graphs = h.GraphDefinition()
+	graphs.Graphs = mp.GraphDefinition()
 
 	b, err := json.Marshal(graphs)
 	if err != nil {
 		log.Fatalln("OutputDefinitions: ", err)
 	}
-	fmt.Println(string(b))
+	fmt.Fprintln(mp.getWriter(), string(b))
+}
+
+// Run the plugin
+func (mp *MackerelPlugin) Run() {
+	if os.Getenv("MACKEREL_AGENT_PLUGIN_META") != "" {
+		mp.OutputDefinitions()
+	} else {
+		mp.OutputValues()
+	}
 }

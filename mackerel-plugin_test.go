@@ -14,8 +14,8 @@ func TestCalcDiff(t *testing.T) {
 	last := time.Unix(now.Unix()-10, 0)
 
 	diff, err := mp.calcDiff(val1, now, val2, last)
-	if diff != 60 {
-		t.Errorf("calcDiff: %f should be %f", diff, 60)
+	if diff != 60.0 {
+		t.Errorf("calcDiff: %f should be %f", diff, 60.0)
 	}
 	if err != nil {
 		t.Error("calcDiff causes an error")
