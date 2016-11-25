@@ -4,26 +4,26 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	mp "github.com/mackerelio/go-mackerel-plugin"
 	"log"
 	"net"
-	"os"
 	"strconv"
 	"strings"
+
+	"github.com/mackerelio/go-mackerel-plugin"
 )
 
-var graphdef map[string]mp.Graphs = map[string]mp.Graphs{
+var graphdef map[string]mackerelplugin.Graphs = map[string]mackerelplugin.Graphs{
 	"memcached.connections": {
 		Label: "Memcached Connections",
 		Unit:  "integer",
-		Metrics: []mp.Metrics{
+		Metrics: []mackerelplugin.Metrics{
 			{Name: "curr_connections", Label: "Connections", Diff: false},
 		},
 	},
 	"memcached.cmd": {
 		Label: "Memcached Command",
 		Unit:  "integer",
-		Metrics: []mp.Metrics{
+		Metrics: []mackerelplugin.Metrics{
 			{Name: "cmd_get", Label: "Get", Diff: true},
 			{Name: "cmd_set", Label: "Set", Diff: true},
 			{Name: "cmd_flush", Label: "Flush", Diff: true},
@@ -33,7 +33,7 @@ var graphdef map[string]mp.Graphs = map[string]mp.Graphs{
 	"memcached.hitmiss": {
 		Label: "Memcached Hits/Misses",
 		Unit:  "integer",
-		Metrics: []mp.Metrics{
+		Metrics: []mackerelplugin.Metrics{
 			{Name: "get_hits", Label: "Get Hits", Diff: true},
 			{Name: "get_misses", Label: "Get Misses", Diff: true},
 			{Name: "delete_hits", Label: "Delete Hits", Diff: true},
@@ -49,14 +49,14 @@ var graphdef map[string]mp.Graphs = map[string]mp.Graphs{
 	"memcached.evictions": {
 		Label: "Memcached Evictions",
 		Unit:  "integer",
-		Metrics: []mp.Metrics{
+		Metrics: []mackerelplugin.Metrics{
 			{Name: "evictions", Label: "Evictions", Diff: true},
 		},
 	},
 	"memcached.unfetched": {
 		Label: "Memcached Unfetched",
 		Unit:  "integer",
-		Metrics: []mp.Metrics{
+		Metrics: []mackerelplugin.Metrics{
 			{Name: "expired_unfetched", Label: "Expired unfetched", Diff: true},
 			{Name: "evicted_unfetched", Label: "Evicted unfetched", Diff: true},
 		},
@@ -64,7 +64,7 @@ var graphdef map[string]mp.Graphs = map[string]mp.Graphs{
 	"memcached.rusage": {
 		Label: "Memcached Resouce Usage",
 		Unit:  "float",
-		Metrics: []mp.Metrics{
+		Metrics: []mackerelplugin.Metrics{
 			{Name: "rusage_user", Label: "User", Diff: true},
 			{Name: "rusage_system", Label: "System", Diff: true},
 		},
@@ -72,7 +72,7 @@ var graphdef map[string]mp.Graphs = map[string]mp.Graphs{
 	"memcached.bytes": {
 		Label: "Memcached Traffics",
 		Unit:  "bytes",
-		Metrics: []mp.Metrics{
+		Metrics: []mackerelplugin.Metrics{
 			{Name: "bytes_read", Label: "Read", Diff: true},
 			{Name: "bytes_written", Label: "Write", Diff: true},
 		},
@@ -114,7 +114,7 @@ func (m MemcachedPlugin) FetchMetrics() (map[string]float64, error) {
 	return nil, nil
 }
 
-func (m MemcachedPlugin) GraphDefinition() map[string]mp.Graphs {
+func (m MemcachedPlugin) GraphDefinition() map[string]mackerelplugin.Graphs {
 	return graphdef
 }
 
@@ -127,17 +127,7 @@ func main() {
 	var memcached MemcachedPlugin
 
 	memcached.Target = fmt.Sprintf("%s:%s", *optHost, *optPort)
-	helper := mp.NewMackerelPlugin(memcached)
-
-	if *optTempfile != "" {
-		helper.Tempfile = *optTempfile
-	} else {
-		helper.Tempfile = fmt.Sprintf("/tmp/mackerel-plugin-memcached-%s-%s", *optHost, *optPort)
-	}
-
-	if os.Getenv("MACKEREL_AGENT_PLUGIN_META") != "" {
-		helper.OutputDefinitions()
-	} else {
-		helper.OutputValues()
-	}
+	helper := mackerelplugin.NewMackerelPlugin(memcached)
+	helper.Tempfile = *optTempfile
+	helper.Run()
 }
