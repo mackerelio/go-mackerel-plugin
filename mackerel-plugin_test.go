@@ -69,14 +69,17 @@ func (m testMemcachedPlugin) GraphDefinition() map[string]Graphs {
 			Label: "Memcached Command",
 			Unit:  "integer",
 			Metrics: []Metrics{
-				{Name: "cmd_get", Label: "Get", Diff: true},
+				{Name: "cmd_get", Label: "Get"},
 			},
 		},
 	}
 }
 
 func (m testMemcachedPlugin) FetchMetrics() (map[string]float64, error) {
-	return make(map[string]float64), nil
+	return map[string]float64{
+		"cmd_get": 11.0,
+		"cmd_set": 8.0,
+	}, nil
 }
 
 func TestOutputDefinitions(t *testing.T) {
@@ -91,7 +94,21 @@ func TestOutputDefinitions(t *testing.T) {
 `
 	got := wtr.String()
 	if got != expect {
-		t.Errorf("result of output values is invalid :%s", got)
+		t.Errorf("result of OutputDefinitions is invalid :%s", got)
+	}
+}
+
+func TestOutputValues(t *testing.T) {
+	var m testMemcachedPlugin
+	mp := NewMackerelPlugin(m)
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	mp.OutputValues()
+	epoch := time.Now().Unix()
+	expect := fmt.Sprintf("memcached.cmd.cmd_get\t%d\t%d\n", 11, epoch)
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of OutputValues is invalid :%s", got)
 	}
 }
 
@@ -185,5 +202,18 @@ func TestPluginOutputDefinitionsWithPrefix(t *testing.T) {
 	got := wtr.String()
 	if got != expect {
 		t.Errorf("result of OutputDefinitions is invalid: %s", got)
+	}
+}
+
+func TestOutputValuesWithPrefix(t *testing.T) {
+	mp := NewMackerelPlugin(testP{})
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	mp.OutputValues()
+	epoch := time.Now().Unix()
+	expect := fmt.Sprintf("testP.bar\t15\t%[1]d\ntestP.fuga.baz\t18\t%[1]d\n", epoch)
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of OutputValues is invalid :%s", got)
 	}
 }
