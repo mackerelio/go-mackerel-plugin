@@ -59,6 +59,42 @@ func TestFormatValues(t *testing.T) {
 	}
 }
 
+// an example implementation
+type testMemcachedPlugin struct {
+}
+
+func (m testMemcachedPlugin) GraphDefinition() map[string]Graphs {
+	return map[string]Graphs{
+		"memcached.cmd": {
+			Label: "Memcached Command",
+			Unit:  "integer",
+			Metrics: []Metrics{
+				{Name: "cmd_get", Label: "Get", Diff: true},
+			},
+		},
+	}
+}
+
+func (m testMemcachedPlugin) FetchMetrics() (map[string]float64, error) {
+	return make(map[string]float64), nil
+}
+
+func TestOutputDefinitions(t *testing.T) {
+	var m testMemcachedPlugin
+	mp := NewMackerelPlugin(m)
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	mp.OutputDefinitions()
+
+	expect := `# mackerel-agent-plugin
+{"graphs":{"memcached.cmd":{"label":"Memcached Command","unit":"integer","metrics":[{"name":"cmd_get","label":"Get","stacked":false}]}}}
+`
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of output values is invalid :%s", got)
+	}
+}
+
 type testP struct{}
 
 func (t testP) FetchMetrics() (map[string]float64, error) {
