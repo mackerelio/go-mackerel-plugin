@@ -261,3 +261,57 @@ func TestPluginHasDiff(t *testing.T) {
 		t.Errorf("something went wrong")
 	}
 }
+
+func TestFormatValuesWithWildcard(t *testing.T) {
+	wtr := &bytes.Buffer{}
+	mp := &MackerelPlugin{writer: wtr}
+	prefix := "foo.#"
+	metric := Metrics{Name: "bar", Label: "Get", Diff: true}
+	stat := map[string]float64{"foo.1.bar": 1000.0, "foo.2.bar": 2000.0}
+	lastStat := map[string]float64{"foo.1.bar": 500.0, ".last_diff.foo.1.bar": 2.0}
+	now := time.Unix(1437227240, 0)
+	lastTime := now.Add(time.Second * (-60))
+	mp.formatValuesWithWildcard(prefix, metric, stat, lastStat, now, lastTime)
+
+	expect := "foo.1.bar	500	1437227240\n"
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("something went wrong: %s", got)
+	}
+}
+
+func TestFormatValuesWithWildcardAndNoDiff(t *testing.T) {
+	wtr := &bytes.Buffer{}
+	mp := &MackerelPlugin{writer: wtr}
+	prefix := "foo.#"
+	metric := Metrics{Name: "bar", Label: "Get", Diff: false}
+	stat := map[string]float64{"foo.1.bar": 1000.0}
+	lastStat := map[string]float64{"foo.1.bar": 500.0, ".last_diff.foo.1.bar": 2.0}
+	now := time.Unix(1437227240, 0)
+	lastTime := now.Add(time.Second * (-60))
+	mp.formatValuesWithWildcard(prefix, metric, stat, lastStat, now, lastTime)
+
+	expect := "foo.1.bar	1000	1437227240\n"
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("something went wrong: %s", got)
+	}
+}
+
+func TestFormatValuesWithWildcardAstarisk(t *testing.T) {
+	wtr := &bytes.Buffer{}
+	mp := &MackerelPlugin{writer: wtr}
+	prefix := "foo"
+	metric := Metrics{Name: "*", Label: "Get", Diff: true}
+	stat := map[string]float64{"foo.1": 1000.0, "foo.2": 2000.0}
+	lastStat := map[string]float64{"foo.1": 500.0, ".last_diff.foo.1": 2.0}
+	now := time.Unix(1437227240, 0)
+	lastTime := now.Add(time.Second * (-60))
+	mp.formatValuesWithWildcard(prefix, metric, stat, lastStat, now, lastTime)
+
+	expect := "foo.1	500	1437227240\n"
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("something went wrong: %s", got)
+	}
+}

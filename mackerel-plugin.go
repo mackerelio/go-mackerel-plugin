@@ -186,13 +186,35 @@ func (mp *MackerelPlugin) OutputValues() {
 
 	for key, graph := range mp.GraphDefinition() {
 		for _, metric := range graph.Metrics {
-			mp.formatValues(key, metric, stat, lastStat, now, lastTime)
+			if strings.ContainsAny(key+metric.Name, "*#") {
+				mp.formatValuesWithWildcard(key, metric, stat, lastStat, now, lastTime)
+			} else {
+				mp.formatValues(key, metric, stat, lastStat, now, lastTime)
+			}
 		}
 	}
 
 	err = mp.saveValues(stat, now)
 	if err != nil {
 		log.Fatalf("saveValues: %s", err)
+	}
+}
+
+func (mp *MackerelPlugin) formatValuesWithWildcard(prefix string, metric Metrics, stat map[string]float64, lastStat map[string]float64, now time.Time, lastTime time.Time) {
+	regexpStr := `\A` + prefix + "." + metric.Name
+	regexpStr = strings.Replace(regexpStr, ".", `\.`, -1)
+	regexpStr = strings.Replace(regexpStr, "*", `[-a-zA-Z0-9_]+`, -1)
+	regexpStr = strings.Replace(regexpStr, "#", `[-a-zA-Z0-9_]+`, -1)
+	re, err := regexp.Compile(regexpStr)
+	if err != nil {
+		log.Fatalln("Failed to compile regexp: ", err)
+	}
+	for k := range stat {
+		if re.MatchString(k) {
+			metricEach := metric
+			metricEach.Name = k
+			mp.formatValues("", metricEach, stat, lastStat, now, lastTime)
+		}
 	}
 }
 
@@ -212,6 +234,7 @@ func (mp *MackerelPlugin) formatValues(prefix string, metric Metrics, stat map[s
 			}
 		} else {
 			log.Printf("%s does not exist at last fetch\n", metric.Name)
+			return
 		}
 	}
 
