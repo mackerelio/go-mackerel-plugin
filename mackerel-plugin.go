@@ -259,8 +259,8 @@ type GraphDef struct {
 }
 
 func title(s string) string {
-	r := strings.NewReplacer(".", " ", "_", " ")
-	return strings.Title(r.Replace(s))
+	r := strings.NewReplacer(".", " ", "_", " ", "*", "", "#", "")
+	return strings.TrimSpace(strings.Title(r.Replace(s)))
 }
 
 // OutputDefinitions outputs graph definitions

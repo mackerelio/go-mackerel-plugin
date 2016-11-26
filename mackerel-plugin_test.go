@@ -354,7 +354,7 @@ func TestPluginOutputDefinitionsWithPrefixAndWildcard(t *testing.T) {
 	defer os.Setenv("MACKEREL_AGENT_PLUGIN_META", "")
 	mp.Run()
 	expect := `# mackerel-agent-plugin
-{"graphs":{"testPWithWildcard.fuga":{"label":"TestPWithWildcard Fuga","unit":"","metrics":[{"name":"baz","label":"Baz","stacked":false}]},"testPWithWildcard.piyo.#":{"label":"TestPWithWildcard Piyo #","unit":"","metrics":[{"name":"bar","label":"Bar","stacked":false}]}}}
+{"graphs":{"testPWithWildcard.fuga":{"label":"TestPWithWildcard Fuga","unit":"","metrics":[{"name":"baz","label":"Baz","stacked":false}]},"testPWithWildcard.piyo.#":{"label":"TestPWithWildcard Piyo","unit":"","metrics":[{"name":"bar","label":"Bar","stacked":false}]}}}
 `
 	got := wtr.String()
 	if got != expect {
