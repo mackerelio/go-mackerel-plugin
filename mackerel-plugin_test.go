@@ -315,3 +315,65 @@ func TestFormatValuesWithWildcardAstarisk(t *testing.T) {
 		t.Errorf("something went wrong: %s", got)
 	}
 }
+
+type testPWithWildcard struct{}
+
+func (t testPWithWildcard) FetchMetrics() (map[string]float64, error) {
+	return map[string]float64{
+		"piyo.1.bar": 11,
+		"piyo.2.bar": 12,
+		"piyo.3.bar": 13,
+		"baz":        18.0,
+	}, nil
+}
+
+func (t testPWithWildcard) GraphDefinition() map[string]Graphs {
+	return map[string]Graphs{
+		"piyo.#": {
+			Metrics: []Metrics{
+				{Name: "bar"},
+			},
+		},
+		"fuga": {
+			Metrics: []Metrics{
+				{Name: "baz"},
+			},
+		},
+	}
+}
+
+func (t testPWithWildcard) MetricKeyPrefix() string {
+	return "testPWithWildcard"
+}
+
+func TestPluginOutputDefinitionsWithPrefixAndWildcard(t *testing.T) {
+	mp := NewMackerelPlugin(testPWithWildcard{})
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	os.Setenv("MACKEREL_AGENT_PLUGIN_META", "1")
+	defer os.Setenv("MACKEREL_AGENT_PLUGIN_META", "")
+	mp.Run()
+	expect := `# mackerel-agent-plugin
+{"graphs":{"testPWithWildcard.fuga":{"label":"TestPWithWildcard Fuga","unit":"","metrics":[{"name":"baz","label":"Baz","stacked":false}]},"testPWithWildcard.piyo.#":{"label":"TestPWithWildcard Piyo #","unit":"","metrics":[{"name":"bar","label":"Bar","stacked":false}]}}}
+`
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of OutputDefinitions is invalid: %s", got)
+	}
+}
+
+func TestOutputValuesWithPrefixAndWildcard(t *testing.T) {
+	mp := NewMackerelPlugin(testPWithWildcard{})
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	mp.Run()
+	epoch := time.Now().Unix()
+	expect := fmt.Sprintf("testPWithWildcard.piyo.1.bar\t11\t%[1]d\n"+
+		"testPWithWildcard.piyo.2.bar\t12\t%[1]d\n"+
+		"testPWithWildcard.piyo.3.bar\t13\t%[1]d\n"+
+		"testPWithWildcard.fuga.baz\t18\t%[1]d\n", epoch)
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of OutputValues is invalid :%s", got)
+	}
+}
