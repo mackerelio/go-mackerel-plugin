@@ -2,7 +2,6 @@ package mackerelplugin
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -137,10 +136,13 @@ func (mp *MackerelPlugin) saveValues(values map[string]float64, now time.Time) e
 func (mp *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
-		return 0, errors.New("Too long duration")
+		return 0, fmt.Errorf("Too long duration")
 	}
 
 	diff := (value - lastValue) * 60 / float64(diffTime)
+	if diff < 0 {
+		return 0, fmt.Errorf("Counter seems to be reset.")
+	}
 	return diff, nil
 }
 
