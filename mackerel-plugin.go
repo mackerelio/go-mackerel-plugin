@@ -50,8 +50,8 @@ type MackerelPlugin struct {
 }
 
 // NewMackerelPlugin returns new MackrelPlugin
-func NewMackerelPlugin(plugin Plugin) MackerelPlugin {
-	return MackerelPlugin{Plugin: plugin}
+func NewMackerelPlugin(plugin Plugin) *MackerelPlugin {
+	return &MackerelPlugin{Plugin: plugin}
 }
 
 func (mp *MackerelPlugin) getWriter() io.Writer {
