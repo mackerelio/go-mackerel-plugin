@@ -184,34 +184,41 @@ func (mp *MackerelPlugin) OutputValues() {
 		log.Println("fetchLastValues (ignore):", err)
 	}
 
+	for key, graph := range mp.GraphDefinition() {
+		for _, metric := range graph.Metrics {
+			mp.formatValues(key, metric, stat, lastStat, now, lastTime)
+		}
+	}
+
 	err = mp.saveValues(stat, now)
 	if err != nil {
 		log.Fatalf("saveValues: %s", err)
 	}
+}
 
-	for key, graph := range mp.GraphDefinition() {
-		for _, metric := range graph.Metrics {
-			value := stat[metric.Name]
-
-			if metric.Diff {
-				_, ok := lastStat[metric.Name]
-				if ok {
-					value, err = mp.calcDiff(value, now, lastStat[metric.Name], lastTime)
-					if err != nil {
-						log.Println("OutputValues: ", err)
-					}
-				} else {
-					log.Printf("%s does not exist at last fetch\n", metric.Name)
-				}
+func (mp *MackerelPlugin) formatValues(prefix string, metric Metrics, stat map[string]float64, lastStat map[string]float64, now time.Time, lastTime time.Time) {
+	name := metric.Name
+	value, ok := stat[name]
+	if !ok {
+		return
+	}
+	if metric.Diff {
+		lastValue, ok := lastStat[name]
+		if ok {
+			var err error
+			value, err = mp.calcDiff(value, now, lastValue, lastTime)
+			if err != nil {
+				log.Println("OutputValues: ", err)
 			}
-
-			if metric.Scale != 0 {
-				value *= metric.Scale
-			}
-
-			mp.printValue(mp.getWriter(), key+"."+metric.Name, value, now)
+		} else {
+			log.Printf("%s does not exist at last fetch\n", metric.Name)
 		}
 	}
+
+	if metric.Scale != 0 {
+		value *= metric.Scale
+	}
+	mp.printValue(mp.getWriter(), prefix+"."+metric.Name, value, now)
 }
 
 // GraphDef is graph definitions
