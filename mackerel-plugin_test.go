@@ -217,3 +217,47 @@ func TestOutputValuesWithPrefix(t *testing.T) {
 		t.Errorf("result of OutputValues is invalid :%s", got)
 	}
 }
+
+type testPHasDiff struct{}
+
+func (t testPHasDiff) FetchMetrics() (map[string]float64, error) {
+	return nil, nil
+}
+
+func (t testPHasDiff) GraphDefinition() map[string]Graphs {
+	return map[string]Graphs{
+		"hoge": {
+			Metrics: []Metrics{
+				{Name: "hoge1", Label: "hoge1", Diff: true},
+			},
+		},
+	}
+}
+
+type testPHasntDiff struct{}
+
+func (t testPHasntDiff) FetchMetrics() (map[string]float64, error) {
+	return nil, nil
+}
+
+func (t testPHasntDiff) GraphDefinition() map[string]Graphs {
+	return map[string]Graphs{
+		"hoge": {
+			Metrics: []Metrics{
+				{Name: "hoge1", Label: "hoge1"},
+			},
+		},
+	}
+}
+
+func TestPluginHasDiff(t *testing.T) {
+	pHasDiff := NewMackerelPlugin(testPHasDiff{})
+	if !pHasDiff.hasDiff() {
+		t.Errorf("something went wrong")
+	}
+
+	pHasntDiff := NewMackerelPlugin(testPHasntDiff{})
+	if pHasntDiff.hasDiff() {
+		t.Errorf("something went wrong")
+	}
+}
