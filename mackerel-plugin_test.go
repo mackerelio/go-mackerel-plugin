@@ -2,6 +2,9 @@ package mackerelplugin
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -53,5 +56,98 @@ func TestFormatValues(t *testing.T) {
 	expect := "foo.cmd_get	500	1437227240\n"
 	if got != expect {
 		t.Errorf("result of formatValues is not expected one: %s", got)
+	}
+}
+
+type testP struct{}
+
+func (t testP) FetchMetrics() (map[string]float64, error) {
+	return map[string]float64{
+		"bar": 15.0,
+		"baz": 18.0,
+	}, nil
+}
+
+func (t testP) GraphDefinition() map[string]Graphs {
+	return map[string]Graphs{
+		"": {
+			Unit: "integer",
+			Metrics: []Metrics{
+				{Name: "bar"},
+			},
+		},
+		"fuga": {
+			Unit: "float",
+			Metrics: []Metrics{
+				{Name: "baz"},
+			},
+		},
+	}
+}
+
+func (t testP) MetricKeyPrefix() string {
+	return "testP"
+}
+
+func TestDefaultTempfile(t *testing.T) {
+	mp := &MackerelPlugin{}
+	filename := filepath.Base(os.Args[0])
+	expect := filepath.Join(os.TempDir(), fmt.Sprintf("mackerel-plugin-%s", filename))
+	if mp.tempfilename() != expect {
+		t.Errorf("mp.tempfilename() should be %s, but: %s", expect, mp.tempfilename())
+	}
+
+	pPrefix := NewMackerelPlugin(testP{})
+	expectForPrefix := filepath.Join(os.TempDir(), "mackerel-plugin-testP")
+	if pPrefix.tempfilename() != expectForPrefix {
+		t.Errorf("pPrefix.tempfilename() should be %s, but: %s", expectForPrefix, pPrefix.tempfilename())
+	}
+}
+
+func TestTempfilenameFromExecutableFilePath(t *testing.T) {
+	mp := &MackerelPlugin{}
+
+	wd, _ := os.Getwd()
+	// not PluginWithPrefix, regular filename
+	expect1 := filepath.Join(os.TempDir(), "mackerel-plugin-foobar")
+	filename1 := mp.generateTempfilePath(filepath.Join(wd, "foobar"))
+	if filename1 != expect1 {
+		t.Errorf("p.generateTempfilePath() should be %s, but: %s", expect1, filename1)
+	}
+
+	// not PluginWithPrefix, contains some characters to be sanitized
+	expect2 := filepath.Join(os.TempDir(), "mackerel-plugin-some_sanitized_name_1.2")
+	filename2 := mp.generateTempfilePath(filepath.Join(wd, "some sanitized:name+1.2"))
+	if filename2 != expect2 {
+		t.Errorf("p.generateTempfilePath() should be %s, but: %s", expect2, filename2)
+	}
+
+	// not PluginWithPrefix, begins with "mackerel-plugin-"
+	expect3 := filepath.Join(os.TempDir(), "mackerel-plugin-trimmed")
+	filename3 := mp.generateTempfilePath(filepath.Join(wd, "mackerel-plugin-trimmed"))
+	if filename3 != expect3 {
+		t.Errorf("p.generateTempfilePath() should be %s, but: %s", expect3, filename3)
+	}
+
+	// PluginWithPrefix ignores current filename
+	pPrefix := NewMackerelPlugin(testP{})
+	expectForPrefix := filepath.Join(os.TempDir(), "mackerel-plugin-testP")
+	filenameForPrefix := pPrefix.generateTempfilePath(filepath.Join(wd, "foo"))
+	if filenameForPrefix != expectForPrefix {
+		t.Errorf("pPrefix.generateTempfilePath() should be %s, but: %s", expectForPrefix, filenameForPrefix)
+	}
+}
+
+func TestPluginOutputDefinitionsWithPrefix(t *testing.T) {
+	mp := NewMackerelPlugin(testP{})
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	mp.OutputDefinitions()
+	expect := `# mackerel-agent-plugin
+{"graphs":{"testP":{"label":"TestP","unit":"integer","metrics":[{"name":"bar","label":"Bar","stacked":false}]},"testP.fuga":{"label":"TestP Fuga","unit":"float","metrics":[{"name":"baz","label":"Baz","stacked":false}]}}}
+`
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of OutputDefinitions is invalid: %s", got)
 	}
 }

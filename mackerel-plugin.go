@@ -218,7 +218,16 @@ func (mp *MackerelPlugin) formatValues(prefix string, metric Metrics, stat map[s
 	if metric.Scale != 0 {
 		value *= metric.Scale
 	}
-	mp.printValue(mp.getWriter(), prefix+"."+metric.Name, value, now)
+
+	metricNames := []string{}
+	if p, ok := mp.Plugin.(PluginWithPrefix); ok {
+		metricNames = append(metricNames, p.MetricKeyPrefix())
+	}
+	if prefix != "" {
+		metricNames = append(metricNames, prefix)
+	}
+	metricNames = append(metricNames, metric.Name)
+	mp.printValue(mp.getWriter(), strings.Join(metricNames, "."), value, now)
 }
 
 // GraphDef is graph definitions
@@ -226,13 +235,42 @@ type GraphDef struct {
 	Graphs map[string]Graphs `json:"graphs"`
 }
 
+func title(s string) string {
+	r := strings.NewReplacer(".", " ", "_", " ")
+	return strings.Title(r.Replace(s))
+}
+
 // OutputDefinitions outputs graph definitions
 func (mp *MackerelPlugin) OutputDefinitions() {
-	fmt.Println("# mackerel-agent-plugin")
-	var graphs GraphDef
-	graphs.Graphs = mp.GraphDefinition()
-
-	b, err := json.Marshal(graphs)
+	fmt.Fprintln(mp.getWriter(), "# mackerel-agent-plugin")
+	graphs := make(map[string]Graphs)
+	for key, graph := range mp.GraphDefinition() {
+		g := graph
+		k := key
+		if p, ok := mp.Plugin.(PluginWithPrefix); ok {
+			prefix := p.MetricKeyPrefix()
+			if k == "" {
+				k = prefix
+			} else {
+				k = prefix + "." + k
+			}
+		}
+		if g.Label == "" {
+			g.Label = title(k)
+		}
+		metrics := []Metrics{}
+		for _, v := range g.Metrics {
+			if v.Label == "" {
+				v.Label = title(v.Name)
+			}
+			metrics = append(metrics, v)
+		}
+		g.Metrics = metrics
+		graphs[k] = g
+	}
+	var graphdef GraphDef
+	graphdef.Graphs = graphs
+	b, err := json.Marshal(graphdef)
 	if err != nil {
 		log.Fatalln("OutputDefinitions: ", err)
 	}
