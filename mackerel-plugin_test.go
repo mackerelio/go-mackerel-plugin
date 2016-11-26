@@ -261,3 +261,119 @@ func TestPluginHasDiff(t *testing.T) {
 		t.Errorf("something went wrong")
 	}
 }
+
+func TestFormatValuesWithWildcard(t *testing.T) {
+	wtr := &bytes.Buffer{}
+	mp := &MackerelPlugin{writer: wtr}
+	prefix := "foo.#"
+	metric := Metrics{Name: "bar", Label: "Get", Diff: true}
+	stat := map[string]float64{"foo.1.bar": 1000.0, "foo.2.bar": 2000.0}
+	lastStat := map[string]float64{"foo.1.bar": 500.0, ".last_diff.foo.1.bar": 2.0}
+	now := time.Unix(1437227240, 0)
+	lastTime := now.Add(time.Second * (-60))
+	mp.formatValuesWithWildcard(prefix, metric, stat, lastStat, now, lastTime)
+
+	expect := "foo.1.bar	500	1437227240\n"
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("something went wrong: %s", got)
+	}
+}
+
+func TestFormatValuesWithWildcardAndNoDiff(t *testing.T) {
+	wtr := &bytes.Buffer{}
+	mp := &MackerelPlugin{writer: wtr}
+	prefix := "foo.#"
+	metric := Metrics{Name: "bar", Label: "Get", Diff: false}
+	stat := map[string]float64{"foo.1.bar": 1000.0}
+	lastStat := map[string]float64{"foo.1.bar": 500.0, ".last_diff.foo.1.bar": 2.0}
+	now := time.Unix(1437227240, 0)
+	lastTime := now.Add(time.Second * (-60))
+	mp.formatValuesWithWildcard(prefix, metric, stat, lastStat, now, lastTime)
+
+	expect := "foo.1.bar	1000	1437227240\n"
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("something went wrong: %s", got)
+	}
+}
+
+func TestFormatValuesWithWildcardAstarisk(t *testing.T) {
+	wtr := &bytes.Buffer{}
+	mp := &MackerelPlugin{writer: wtr}
+	prefix := "foo"
+	metric := Metrics{Name: "*", Label: "Get", Diff: true}
+	stat := map[string]float64{"foo.1": 1000.0, "foo.2": 2000.0}
+	lastStat := map[string]float64{"foo.1": 500.0, ".last_diff.foo.1": 2.0}
+	now := time.Unix(1437227240, 0)
+	lastTime := now.Add(time.Second * (-60))
+	mp.formatValuesWithWildcard(prefix, metric, stat, lastStat, now, lastTime)
+
+	expect := "foo.1	500	1437227240\n"
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("something went wrong: %s", got)
+	}
+}
+
+type testPWithWildcard struct{}
+
+func (t testPWithWildcard) FetchMetrics() (map[string]float64, error) {
+	return map[string]float64{
+		"piyo.1.bar": 11,
+		"piyo.2.bar": 12,
+		"piyo.3.bar": 13,
+		"baz":        18.0,
+	}, nil
+}
+
+func (t testPWithWildcard) GraphDefinition() map[string]Graphs {
+	return map[string]Graphs{
+		"piyo.#": {
+			Metrics: []Metrics{
+				{Name: "bar"},
+			},
+		},
+		"fuga": {
+			Metrics: []Metrics{
+				{Name: "baz"},
+			},
+		},
+	}
+}
+
+func (t testPWithWildcard) MetricKeyPrefix() string {
+	return "testPWithWildcard"
+}
+
+func TestPluginOutputDefinitionsWithPrefixAndWildcard(t *testing.T) {
+	mp := NewMackerelPlugin(testPWithWildcard{})
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	os.Setenv("MACKEREL_AGENT_PLUGIN_META", "1")
+	defer os.Setenv("MACKEREL_AGENT_PLUGIN_META", "")
+	mp.Run()
+	expect := `# mackerel-agent-plugin
+{"graphs":{"testPWithWildcard.fuga":{"label":"TestPWithWildcard Fuga","unit":"","metrics":[{"name":"baz","label":"Baz","stacked":false}]},"testPWithWildcard.piyo.#":{"label":"TestPWithWildcard Piyo","unit":"","metrics":[{"name":"bar","label":"Bar","stacked":false}]}}}
+`
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of OutputDefinitions is invalid: %s", got)
+	}
+}
+
+func TestOutputValuesWithPrefixAndWildcard(t *testing.T) {
+	mp := NewMackerelPlugin(testPWithWildcard{})
+	wtr := &bytes.Buffer{}
+	mp.writer = wtr
+	mp.Run()
+	epoch := time.Now().Unix()
+	expect := fmt.Sprintf("testPWithWildcard.piyo.1.bar\t11\t%[1]d\n"+
+		"testPWithWildcard.piyo.2.bar\t12\t%[1]d\n"+
+		"testPWithWildcard.piyo.3.bar\t13\t%[1]d\n"+
+		"testPWithWildcard.fuga.baz\t18\t%[1]d\n", epoch)
+	got := wtr.String()
+	if got != expect {
+		t.Errorf("result of OutputValues is invalid :%s", got)
+	}
+}

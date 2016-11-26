@@ -1,7 +1,3 @@
-This package is deprecated. You should use [go-mackerel-plugin-helper](https://github.com/mackerelio/go-mackerel-plugin-helper).
-==========
-
-
 go-mackerel-plugin [![Build Status](https://travis-ci.org/mackerelio/go-mackerel-plugin.svg?branch=master)](https://travis-ci.org/mackerelio/go-mackerel-plugin)
 ==================
 
@@ -17,12 +13,12 @@ Example of graph definition.
 `Graphs` is a type represents one graph and `Metrics` is a type represents each line.
 
 ```golang
-var graphdef map[string](Graphs) = map[string](Graphs){
-	"memcached.connections": mp.Graphs{
+var graphdef = map[string]mackerelplugin.Graphs{
+	"memcached.connections": {
 		Label: "Memcached Connections",
 		Unit:  "integer",
-		Metrics: [](Metrics){
-			Metrics{Key: "curr_connections", Label: "Connections", Diff: false},
+		Metrics: []mackerelplugin.Metrics{
+			{Key: "curr_connections", Label: "Connections", Diff: false},
 		},
 	},
 }
@@ -52,14 +48,14 @@ For example, `OGC` value are provided KB scale.
 `Scale` of `Metrics` is a multiplier for adjustment of the scale values.
 
 ```golang
-var graphdef map[string](Graphs) = map[string](Graphs){
-    "jvm.old_space": mp.Graphs{
+var graphdef = map[string]mackerelplugin.Graphs{
+    "jvm.old_space": {
         Label: "JVM Old Space memory",
         Unit:  "float",
-        Metrics: [](mp.Metrics){
-            mp.Metrics{Name: "OGCMX", Label: "Old max", Diff: false, Scale: 1024},
-            mp.Metrics{Name: "OGC", Label: "Old current", Diff: false, Scale: 1024},
-            mp.Metrics{Name: "OU", Label: "Old used", Diff: false, Scale: 1024},
+        Metrics: []mackerelplugin.Metrics{
+            {Name: "OGCMX", Label: "Old max", Diff: false, Scale: 1024},
+            {Name: "OGC", Label: "Old current", Diff: false, Scale: 1024},
+            {Name: "OU", Label: "Old used", Diff: false, Scale: 1024},
         },
     },
 }
