@@ -377,3 +377,23 @@ func TestOutputValuesWithPrefixAndWildcard(t *testing.T) {
 		t.Errorf("result of OutputValues is invalid :%s", got)
 	}
 }
+
+func TestSetTempfileWithBasename(t *testing.T) {
+	var p MackerelPlugin
+
+	expect1 := filepath.Join(os.TempDir(), "my-super-tempfile")
+	p.SetTempfileByBasename("my-super-tempfile")
+	if p.Tempfile != expect1 {
+		t.Errorf("p.SetTempfileByBasename() should set %s, but: %s", expect1, p.Tempfile)
+	}
+
+	origDir := os.Getenv("MACKEREL_PLUGIN_WORKDIR")
+	os.Setenv("MACKEREL_PLUGIN_WORKDIR", "/tmp/somewhere")
+	defer os.Setenv("MACKEREL_PLUGIN_WORKDIR", origDir)
+
+	expect2 := "/tmp/somewhere/my-great-tempfile"
+	p.SetTempfileByBasename("my-great-tempfile")
+	if p.Tempfile != expect2 {
+		t.Errorf("p.SetTempfileByBasename() should set %s, but: %s", expect2, p.Tempfile)
+	}
+}
