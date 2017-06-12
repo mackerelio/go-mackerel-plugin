@@ -119,6 +119,9 @@ func (mp *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, erro
 }
 
 func (mp *MackerelPlugin) saveValues(values map[string]float64, now time.Time) error {
+	if !mp.hasDiff() {
+		return nil
+	}
 	f, err := os.Create(mp.tempfilename())
 	if err != nil {
 		return err
