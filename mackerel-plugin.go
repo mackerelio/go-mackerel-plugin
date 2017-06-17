@@ -15,6 +15,15 @@ import (
 	"github.com/mackerelio/golib/pluginutil"
 )
 
+const (
+	UnitFloat          = "float"
+	UnitInteger        = "integer"
+	UnitPercentage     = "percentage"
+	UnitBytes          = "bytes"
+	UnitBytesPerSecond = "bytes/sec"
+	UnitIOPS           = "iops"
+)
+
 // Metrics represents definition of a metric
 type Metrics struct {
 	Name    string  `json:"name"`
