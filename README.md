@@ -8,10 +8,24 @@ How to use
 ==========
 
 ## Graph Definition
+A plugin can specify `Graphs` and `Metrics`.
+`Graphs` represents one graph and includes some `Metrics`s which represent each line.
+
+`Graphs` includes followings:
+
+- `Label`: Label for the graph
+- `Unit`: Unit for lines, `float`, `integer`, `percentage`, `bytes`, `bytes/sec`, `iops` can be specified.
+- `Metrics`: Array of `Metrics` which represents each line.
+
+`Metics` includes followings:
+
+- `Name`: Key of the line
+- `Label`: Label of the line
+- `Diff`: If `Diff` is true, differential is used as value.
+- `Stacked`: If `Stacked` is true, the line is stacked.
+- `Scale`: Each value is multiplied by `Scale`.
 
 Example of graph definition.
-`Graphs` is a type represents one graph and `Metrics` is a type represents each line.
-
 ```golang
 var graphdef = map[string]mackerelplugin.Graphs{
 	"memcached.connections": {
