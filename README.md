@@ -71,30 +71,12 @@ func main() {
 
 You can find an example implementation in _example/ directory.
 
-## Tempfile
-
-`MackerelPlugin` interface has `Tempfile` field. The Tempfile is used to calculate differences in metrics with `Diff: true`.
-If this field is omitted, the filename of the temporaty file is automatically generated from plugin filename.
-
-### Default value of Tempfile
-
-mackerel-agent's plugins should place its Tempfile under `os.Getenv("MACKEREL_PLUGIN_WORKDIR")` unless specified explicitly.
-Since this helper handles the environmental value, it's recommended not to set default Tempfile path.
-But if a plugin wants to set default Tempfile filename by itself, use `MackerelPlugin.SetTempfileByBasename()`, which sets Tempfile path considering the environmental value.
-
-```go
-  helper.Tempfile = *optTempfile
-  if optTempfile == nil {
-    helper.SetTempfileByBasename("YOUR_DEFAULT_FILENAME")
-  }
-```
-
 ## Calculate Differential of Counter
 
-Many status values of popular middlewares are provided as counter.
-But current Mackerel API can accept only absolute values, so differential values must be caculated beside agent plugins.
+Many status values of popular middle-wares are provided as counter.
+But current Mackerel API can accept only absolute values, so differential values must be calculated beside agent plugins.
 
-`Diff` of `Metrics` is a flag wheather values must be treated as counter or not.
+`Diff` of `Metrics` is a flag whether values must be treated as counter or not.
 If this flag is set, this package calculate differential values automatically with current values and previous values, which are saved to a temporally file.
 
 ## Adjust Scale Value
@@ -116,4 +98,22 @@ var graphdef = map[string]mackerelplugin.Graphs{
         },
     },
 }
+```
+
+## Tempfile
+
+`MackerelPlugin` interface has `Tempfile` field. The Tempfile is used to calculate differences in metrics with `Diff: true`.
+If this field is omitted, the filename of the temporaty file is automatically generated from plugin filename.
+
+### Default value of Tempfile
+
+mackerel-agent's plugins should place its Tempfile under `os.Getenv("MACKEREL_PLUGIN_WORKDIR")` unless specified explicitly.
+Since this helper handles the environmental value, it's recommended not to set default Tempfile path.
+But if a plugin wants to set default Tempfile filename by itself, use `MackerelPlugin.SetTempfileByBasename()`, which sets Tempfile path considering the environmental value.
+
+```go
+  helper.Tempfile = *optTempfile
+  if optTempfile == nil {
+    helper.SetTempfileByBasename("YOUR_DEFAULT_FILENAME")
+  }
 ```
