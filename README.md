@@ -55,13 +55,13 @@ func main() {
 	optHost := flag.String("host", "localhost", "Hostname")
 	optPort := flag.String("port", "11211", "Port")
 	optTempfile := flag.String("tempfile", "", "Temp file name")
-    optMetricKeyPrefix := flag.String("metric-key-prefix", "memcached", "Metric Key Prefix")
+	optMetricKeyPrefix := flag.String("metric-key-prefix", "memcached", "Metric Key Prefix")
 	flag.Parse()
 
 	var memcached MemcachedPlugin
 
 	memcached.Target = fmt.Sprintf("%s:%s", *optHost, *optPort)
-    memcached.prefix = *optMetricKeyPrefix
+	memcached.prefix = *optMetricKeyPrefix
 	helper := mackerelplugin.NewMackerelPlugin(memcached)
 	helper.Tempfile = *optTempfile
 
@@ -88,15 +88,15 @@ For example, `OGC` value are provided KB scale.
 
 ```golang
 var graphdef = map[string]mackerelplugin.Graphs{
-    "jvm.old_space": {
-        Label: "JVM Old Space memory",
-        Unit:  "float",
-        Metrics: []mackerelplugin.Metrics{
-            {Name: "OGCMX", Label: "Old max", Diff: false, Scale: 1024},
-            {Name: "OGC", Label: "Old current", Diff: false, Scale: 1024},
-            {Name: "OU", Label: "Old used", Diff: false, Scale: 1024},
-        },
-    },
+	"jvm.old_space": {
+		Label: "JVM Old Space memory",
+		Unit:  "float",
+		Metrics: []mackerelplugin.Metrics{
+			{Name: "OGCMX", Label: "Old max", Diff: false, Scale: 1024},
+			{Name: "OGC", Label: "Old current", Diff: false, Scale: 1024},
+			{Name: "OU", Label: "Old used", Diff: false, Scale: 1024},
+		},
+	},
 }
 ```
 
