@@ -38,6 +38,39 @@ var graphdef = map[string]mackerelplugin.Graphs{
 }
 ```
 
+## Method
+
+A plugin must implement this interface and the `main` method.
+
+```go
+type PluginWithPrefix interface {
+	FetchMetrics() (map[string]interface{}, error)
+	GraphDefinition() map[string]Graphs
+	MetricKeyPrefix() string
+}
+```
+
+```go
+func main() {
+	optHost := flag.String("host", "localhost", "Hostname")
+	optPort := flag.String("port", "11211", "Port")
+	optTempfile := flag.String("tempfile", "", "Temp file name")
+    optMetricKeyPrefix := flag.String("metric-key-prefix", "memcached", "Metric Key Prefix")
+	flag.Parse()
+
+	var memcached MemcachedPlugin
+
+	memcached.Target = fmt.Sprintf("%s:%s", *optHost, *optPort)
+    memcached.prefix = *optMetricKeyPrefix
+	helper := mackerelplugin.NewMackerelPlugin(memcached)
+	helper.Tempfile = *optTempfile
+
+	helper.Run()
+}
+```
+
+You can find an example implementation in _example/ directory.
+
 ## Tempfile
 
 `MackerelPlugin` interface has `Tempfile` field. The Tempfile is used to calculate differences in metrics with `Diff: true`.
@@ -55,14 +88,6 @@ But if a plugin wants to set default Tempfile filename by itself, use `MackerelP
     helper.SetTempfileByBasename("YOUR_DEFAULT_FILENAME")
   }
 ```
-
-## Method
-- FetchData
-  - fetch status data
-- GetGraphDefinition
-  - output graph definition.
-- GetTempfilename
-  - output temporally filename.
 
 ## Calculate Differential of Counter
 
