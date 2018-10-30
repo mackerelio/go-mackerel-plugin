@@ -44,7 +44,7 @@ A plugin must implement this interface and the `main` method.
 
 ```go
 type PluginWithPrefix interface {
-	FetchMetrics() (map[string]interface{}, error)
+	FetchMetrics() (map[string]float64, error)
 	GraphDefinition() map[string]Graphs
 	MetricKeyPrefix() string
 }
