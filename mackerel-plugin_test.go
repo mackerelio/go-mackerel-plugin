@@ -2,9 +2,11 @@ package mackerelplugin
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -145,13 +147,20 @@ func (t testP) MetricKeyPrefix() string {
 func TestDefaultTempfile(t *testing.T) {
 	mp := &MackerelPlugin{}
 	filename := filepath.Base(os.Args[0])
-	expect := filepath.Join(os.TempDir(), fmt.Sprintf("mackerel-plugin-%s", filename))
+	expect := filepath.Join(os.TempDir(), fmt.Sprintf(
+		"mackerel-plugin-%s-%x",
+		filename,
+		sha1.Sum([]byte(strings.Join(os.Args[1:], " "))),
+	))
 	if mp.tempfilename() != expect {
 		t.Errorf("mp.tempfilename() should be %s, but: %s", expect, mp.tempfilename())
 	}
 
 	pPrefix := NewMackerelPlugin(testP{})
-	expectForPrefix := filepath.Join(os.TempDir(), "mackerel-plugin-testP")
+	expectForPrefix := filepath.Join(os.TempDir(), fmt.Sprintf(
+		"mackerel-plugin-testP-%x",
+		sha1.Sum([]byte(strings.Join(os.Args[1:], " "))),
+	))
 	if pPrefix.tempfilename() != expectForPrefix {
 		t.Errorf("pPrefix.tempfilename() should be %s, but: %s", expectForPrefix, pPrefix.tempfilename())
 	}
@@ -162,32 +171,39 @@ func TestTempfilenameFromExecutableFilePath(t *testing.T) {
 
 	wd, _ := os.Getwd()
 	// not PluginWithPrefix, regular filename
-	expect1 := filepath.Join(os.TempDir(), "mackerel-plugin-foobar")
-	filename1 := mp.generateTempfilePath(filepath.Join(wd, "foobar"))
+	expect1 := filepath.Join(os.TempDir(), "mackerel-plugin-foobar-da39a3ee5e6b4b0d3255bfef95601890afd80709")
+	filename1 := mp.generateTempfilePath([]string{filepath.Join(wd, "foobar")})
 	if filename1 != expect1 {
 		t.Errorf("p.generateTempfilePath() should be %s, but: %s", expect1, filename1)
 	}
 
 	// not PluginWithPrefix, contains some characters to be sanitized
-	expect2 := filepath.Join(os.TempDir(), "mackerel-plugin-some_sanitized_name_1.2")
-	filename2 := mp.generateTempfilePath(filepath.Join(wd, "some sanitized:name+1.2"))
+	expect2 := filepath.Join(os.TempDir(), "mackerel-plugin-some_sanitized_name_1.2-da39a3ee5e6b4b0d3255bfef95601890afd80709")
+	filename2 := mp.generateTempfilePath([]string{filepath.Join(wd, "some sanitized:name+1.2")})
 	if filename2 != expect2 {
 		t.Errorf("p.generateTempfilePath() should be %s, but: %s", expect2, filename2)
 	}
 
 	// not PluginWithPrefix, begins with "mackerel-plugin-"
-	expect3 := filepath.Join(os.TempDir(), "mackerel-plugin-trimmed")
-	filename3 := mp.generateTempfilePath(filepath.Join(wd, "mackerel-plugin-trimmed"))
+	expect3 := filepath.Join(os.TempDir(), "mackerel-plugin-trimmed-da39a3ee5e6b4b0d3255bfef95601890afd80709")
+	filename3 := mp.generateTempfilePath([]string{filepath.Join(wd, "mackerel-plugin-trimmed")})
 	if filename3 != expect3 {
 		t.Errorf("p.generateTempfilePath() should be %s, but: %s", expect3, filename3)
 	}
 
 	// PluginWithPrefix ignores current filename
 	pPrefix := NewMackerelPlugin(testP{})
-	expectForPrefix := filepath.Join(os.TempDir(), "mackerel-plugin-testP")
-	filenameForPrefix := pPrefix.generateTempfilePath(filepath.Join(wd, "foo"))
+	expectForPrefix := filepath.Join(os.TempDir(), "mackerel-plugin-testP-da39a3ee5e6b4b0d3255bfef95601890afd80709")
+	filenameForPrefix := pPrefix.generateTempfilePath([]string{filepath.Join(wd, "foo")})
 	if filenameForPrefix != expectForPrefix {
 		t.Errorf("pPrefix.generateTempfilePath() should be %s, but: %s", expectForPrefix, filenameForPrefix)
+	}
+
+	// Generate sha1 using command-line options, and use it for filename
+	expect5 := filepath.Join(os.TempDir(), "mackerel-plugin-mysql-9045504f8fadd7ddcc8962ec1d9fc70e3f7ba627")
+	filename5 := mp.generateTempfilePath([]string{filepath.Join(wd, "mackerel-plugin-mysql"), "-host", "hostname1", "-port", "3306"})
+	if filename5 != expect5 {
+		t.Errorf("p.generateTempfilePath() should be %s, but: %s", expect5, filename5)
 	}
 }
 
