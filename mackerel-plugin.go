@@ -27,11 +27,12 @@ const (
 
 // Metrics represents definition of a metric
 type Metrics struct {
-	Name    string  `json:"name"`
-	Label   string  `json:"label"`
-	Diff    bool    `json:"-"`
-	Stacked bool    `json:"stacked"`
-	Scale   float64 `json:"-"`
+	Name      string  `json:"name"`
+	Label     string  `json:"label"`
+	Diff      bool    `json:"-"`
+	Stacked   bool    `json:"stacked"`
+	Scale     float64 `json:"-"`
+	PerSecond bool    `json:"-"`
 }
 
 // Graphs represents definition of a graph
@@ -148,13 +149,19 @@ func (mp *MackerelPlugin) saveValues(values map[string]float64, now time.Time) e
 	return nil
 }
 
-func (mp *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
+func (mp *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time, perSecond bool) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
 		return 0, fmt.Errorf("Too long duration")
 	}
 
-	diff := (value - lastValue) * 60 / float64(diffTime)
+	var diff float64
+	if perSecond {
+		diff = (value - lastValue) / float64(diffTime)
+	} else {
+		diff = (value - lastValue) * 60 / float64(diffTime)
+	}
+
 	if diff < 0 {
 		return 0, fmt.Errorf("Counter seems to be reset.")
 	}
@@ -251,7 +258,7 @@ func (mp *MackerelPlugin) formatValues(prefix string, metric Metrics, stat map[s
 		lastValue, ok := lastStat[name]
 		if ok {
 			var err error
-			value, err = mp.calcDiff(value, now, lastValue, lastTime)
+			value, err = mp.calcDiff(value, now, lastValue, lastTime, metric.PerSecond)
 			if err != nil {
 				log.Println("OutputValues: ", err)
 			}

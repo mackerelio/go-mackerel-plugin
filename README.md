@@ -24,6 +24,7 @@ A plugin can specify `Graphs` and `Metrics`.
 - `Diff`: If `Diff` is true, differential is used as value.
 - `Stacked`: If `Stacked` is true, the line is stacked.
 - `Scale`: Each value is multiplied by `Scale`.
+- `PerSecond`: If `PerSecond` is true, per second is used as value. This option works if `Diff` is true.
 
 Example of graph definition.
 ```golang

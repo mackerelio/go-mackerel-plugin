@@ -18,8 +18,9 @@ func TestCalcDiff(t *testing.T) {
 	val2 := 0.0
 	now := time.Now()
 	last := time.Unix(now.Unix()-10, 0)
+	perSecond := false
 
-	diff, err := mp.calcDiff(val1, now, val2, last)
+	diff, err := mp.calcDiff(val1, now, val2, last, perSecond)
 	if diff != 60.0 {
 		t.Errorf("calcDiff: %f should be %f", diff, 60.0)
 	}
@@ -35,10 +36,29 @@ func TestCalcDiffWithReset(t *testing.T) {
 	lastval := 12345.0
 	now := time.Now()
 	last := time.Unix(now.Unix()-60, 0)
+	perSecond := false
 
-	diff, err := mp.calcDiff(val, now, lastval, last)
+	diff, err := mp.calcDiff(val, now, lastval, last, perSecond)
 	if err == nil {
 		t.Errorf("calcDiff with counter reset should cause an error: %f", diff)
+	}
+}
+
+func TestCalcDiffWithPerSecond(t *testing.T) {
+	var mp *MackerelPlugin
+
+	val1 := 10.0
+	val2 := 0.0
+	now := time.Now()
+	last := time.Unix(now.Unix()-10, 0)
+	perSecond := true
+
+	diff, err := mp.calcDiff(val1, now, val2, last, perSecond)
+	if diff != 1.0 {
+		t.Errorf("calcDiff: %f should be %f", diff, 1.0)
+	}
+	if err != nil {
+		t.Error("calcDiff causes an error")
 	}
 }
 
