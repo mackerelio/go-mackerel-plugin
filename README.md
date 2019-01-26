@@ -32,7 +32,7 @@ var graphdef = map[string]mackerelplugin.Graphs{
 		Label: "Memcached Connections",
 		Unit:  "integer",
 		Metrics: []mackerelplugin.Metrics{
-			{Key: "curr_connections", Label: "Connections", Diff: false},
+			{Name: "curr_connections", Label: "Connections", Diff: false},
 		},
 	},
 }
