@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -229,7 +230,7 @@ func TestOutputValuesWithPrefix(t *testing.T) {
 	epoch := time.Now().Unix()
 	expect := fmt.Sprintf("testP.bar\t15\t%[1]d\ntestP.fuga.baz\t18\t%[1]d\n", epoch)
 	got := wtr.String()
-	if got != expect {
+	if sortLines(got) != sortLines(expect) {
 		t.Errorf("result of OutputValues is invalid :%s", got)
 	}
 }
@@ -389,7 +390,7 @@ func TestOutputValuesWithPrefixAndWildcard(t *testing.T) {
 		"testPWithWildcard.piyo.3.bar\t13\t%[1]d\n"+
 		"testPWithWildcard.fuga.baz\t18\t%[1]d\n", epoch)
 	got := wtr.String()
-	if got != expect {
+	if sortLines(got) != sortLines(expect) {
 		t.Errorf("result of OutputValues is invalid :%s", got)
 	}
 }
@@ -412,4 +413,10 @@ func TestSetTempfileWithBasename(t *testing.T) {
 	if p.Tempfile != expect2 {
 		t.Errorf("p.SetTempfileByBasename() should set %s, but: %s", expect2, p.Tempfile)
 	}
+}
+
+func sortLines(s string) string {
+	xs := strings.Split(s, "\n")
+	sort.Strings(xs)
+	return strings.Join(xs, "\n")
 }
