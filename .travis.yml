@@ -5,3 +5,7 @@ go:
 
 env:
   - GO111MODULE=on
+
+script:
+  - make lint
+  - make test
