@@ -3,6 +3,7 @@ package mackerelplugin
 import (
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -16,6 +17,7 @@ import (
 	"github.com/mackerelio/golib/pluginutil"
 )
 
+// Metric units
 const (
 	UnitFloat          = "float"
 	UnitInteger        = "integer"
@@ -151,12 +153,12 @@ func (mp *MackerelPlugin) saveValues(values map[string]float64, now time.Time) e
 func (mp *MackerelPlugin) calcDiff(value float64, now time.Time, lastValue float64, lastTime time.Time) (float64, error) {
 	diffTime := now.Unix() - lastTime.Unix()
 	if diffTime > 600 {
-		return 0, fmt.Errorf("Too long duration")
+		return 0, errors.New("too long duration")
 	}
 
 	diff := (value - lastValue) * 60 / float64(diffTime)
 	if diff < 0 {
-		return 0, fmt.Errorf("Counter seems to be reset.")
+		return 0, errors.New("counter seems to be reset")
 	}
 	return diff, nil
 }
