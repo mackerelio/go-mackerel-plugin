@@ -4,7 +4,7 @@ deps:
 
 .PHONY: lint
 lint: deps
-	go tool vet -all .
+	go vet -all .
 	golint -set_exit_status .
 
 .PHONY: test
