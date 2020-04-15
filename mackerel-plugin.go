@@ -105,7 +105,11 @@ func (mp *MackerelPlugin) printValue(w io.Writer, key string, value float64, now
 	}
 }
 
-func (mp *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error) {
+var errStateRecentlyUpdated = errors.New("state was recently updated")
+
+const oldEnoughTime = time.Second
+
+func (mp *MackerelPlugin) fetchLastValues(now time.Time) (map[string]float64, time.Time, error) {
 	if !mp.hasDiff() {
 		return nil, time.Time{}, nil
 	}
@@ -126,6 +130,9 @@ func (mp *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, erro
 		return stat, time.Time{}, err
 	}
 	lastTime := time.Unix(int64(stat["_lastTime"]), 0)
+	if now.Sub(lastTime) < oldEnoughTime {
+		return stat, time.Time{}, errStateRecentlyUpdated
+	}
 	return stat, lastTime, nil
 }
 
@@ -203,7 +210,7 @@ func (mp *MackerelPlugin) OutputValues() {
 		log.Fatalln("OutputValues: ", err)
 	}
 
-	lastStat, lastTime, err := mp.fetchLastValues()
+	lastStat, lastTime, err := mp.fetchLastValues(now)
 	if err != nil {
 		log.Println("fetchLastValues (ignore):", err)
 	}
