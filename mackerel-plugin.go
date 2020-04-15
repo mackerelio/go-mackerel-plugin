@@ -107,7 +107,7 @@ func (mp *MackerelPlugin) printValue(w io.Writer, key string, value float64, now
 
 var errStateRecentlyUpdated = errors.New("state was recently updated")
 
-const oldEnoughTime = time.Second
+const oldEnoughDuration = time.Second
 
 func (mp *MackerelPlugin) fetchLastValues(now time.Time) (map[string]float64, time.Time, error) {
 	if !mp.hasDiff() {
@@ -130,7 +130,7 @@ func (mp *MackerelPlugin) fetchLastValues(now time.Time) (map[string]float64, ti
 		return stat, time.Time{}, err
 	}
 	lastTime := time.Unix(int64(stat["_lastTime"]), 0)
-	if now.Sub(lastTime) < oldEnoughTime {
+	if now.Sub(lastTime) < oldEnoughDuration {
 		return stat, time.Time{}, errStateRecentlyUpdated
 	}
 	return stat, lastTime, nil
