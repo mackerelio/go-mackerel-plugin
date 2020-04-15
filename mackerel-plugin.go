@@ -107,26 +107,25 @@ func (mp *MackerelPlugin) printValue(w io.Writer, key string, value float64, now
 
 func (mp *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error) {
 	if !mp.hasDiff() {
-		return nil, time.Unix(0, 0), nil
+		return nil, time.Time{}, nil
 	}
-	lastTime := time.Now()
 
 	f, err := os.Open(mp.tempfilename())
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, lastTime, nil
+			return nil, time.Time{}, nil
 		}
-		return nil, lastTime, err
+		return nil, time.Time{}, err
 	}
 	defer f.Close()
 
 	stat := make(map[string]float64)
 	decoder := json.NewDecoder(f)
 	err = decoder.Decode(&stat)
-	lastTime = time.Unix(int64(stat["_lastTime"]), 0)
 	if err != nil {
-		return stat, lastTime, err
+		return stat, time.Time{}, err
 	}
+	lastTime := time.Unix(int64(stat["_lastTime"]), 0)
 	return stat, lastTime, nil
 }
 
