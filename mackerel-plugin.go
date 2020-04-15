@@ -105,27 +105,33 @@ func (mp *MackerelPlugin) printValue(w io.Writer, key string, value float64, now
 	}
 }
 
-func (mp *MackerelPlugin) fetchLastValues() (map[string]float64, time.Time, error) {
+var errStateRecentlyUpdated = errors.New("state was recently updated")
+
+const oldEnoughDuration = time.Second
+
+func (mp *MackerelPlugin) fetchLastValues(now time.Time) (map[string]float64, time.Time, error) {
 	if !mp.hasDiff() {
-		return nil, time.Unix(0, 0), nil
+		return nil, time.Time{}, nil
 	}
-	lastTime := time.Now()
 
 	f, err := os.Open(mp.tempfilename())
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, lastTime, nil
+			return nil, time.Time{}, nil
 		}
-		return nil, lastTime, err
+		return nil, time.Time{}, err
 	}
 	defer f.Close()
 
 	stat := make(map[string]float64)
 	decoder := json.NewDecoder(f)
 	err = decoder.Decode(&stat)
-	lastTime = time.Unix(int64(stat["_lastTime"]), 0)
 	if err != nil {
-		return stat, lastTime, err
+		return stat, time.Time{}, err
+	}
+	lastTime := time.Unix(int64(stat["_lastTime"]), 0)
+	if now.Sub(lastTime) < oldEnoughDuration {
+		return stat, time.Time{}, errStateRecentlyUpdated
 	}
 	return stat, lastTime, nil
 }
@@ -204,7 +210,7 @@ func (mp *MackerelPlugin) OutputValues() {
 		log.Fatalln("OutputValues: ", err)
 	}
 
-	lastStat, lastTime, err := mp.fetchLastValues()
+	lastStat, lastTime, err := mp.fetchLastValues(now)
 	if err != nil {
 		log.Println("fetchLastValues (ignore):", err)
 	}

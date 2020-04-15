@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -419,4 +420,64 @@ func sortLines(s string) string {
 	xs := strings.Split(s, "\n")
 	sort.Strings(xs)
 	return strings.Join(xs, "\n")
+}
+
+func TestFetchLastValuesIfNotExist(t *testing.T) {
+	p := NewMackerelPlugin(testPHasDiff{})
+	p.Tempfile = "state_file_should_not_exist.json"
+	_, last, err := p.fetchLastValues(time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !last.IsZero() {
+		t.Errorf("Timestamp = %v; want 0001-01-01", last)
+	}
+}
+
+func TestFetchLastValuesIfFileIsBroken(t *testing.T) {
+	p := NewMackerelPlugin(testPHasDiff{})
+	f, cleanup := createTempState(t)
+	defer cleanup() // we will able to use t.Cleanup if go1.14 or later
+	p.Tempfile = f.Name()
+
+	if _, err := f.Write([]byte("{{{-0")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
+	_, last, err := p.fetchLastValues(time.Now())
+	if err == nil {
+		t.Errorf("fetchLastValues should return an error; state is broken")
+	}
+	if !last.IsZero() {
+		t.Errorf("Timestamp = %v; want 0001-01-01", last)
+	}
+}
+
+func TestFetchLastValuesReadStateSameTime(t *testing.T) {
+	p := NewMackerelPlugin(testPHasDiff{})
+	f, cleanup := createTempState(t)
+	defer cleanup() // we will able to use t.Cleanup if go1.14 or later
+	p.Tempfile = f.Name()
+	now := time.Now()
+	stats := make(map[string]float64)
+	p.saveValues(stats, now)
+
+	_, last, err := p.fetchLastValues(now)
+	if err != errStateRecentlyUpdated {
+		t.Errorf("fetchLastValues: %v; want %v", err, errStateRecentlyUpdated)
+	}
+	if !last.IsZero() {
+		t.Errorf("fetchLastValues: last should be zero; but %v", last)
+	}
+}
+
+func createTempState(t testing.TB) (*os.File, func()) {
+	t.Helper()
+	f, err := ioutil.TempFile("", "mackerel-plugin.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f, func() { os.Remove(f.Name()) }
 }
