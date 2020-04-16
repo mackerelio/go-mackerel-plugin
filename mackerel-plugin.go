@@ -212,6 +212,10 @@ func (mp *MackerelPlugin) OutputValues() {
 
 	lastStat, lastTime, err := mp.fetchLastValues(now)
 	if err != nil {
+		if err == errStateRecentlyUpdated {
+			log.Println("OutputValues:", err)
+			return
+		}
 		log.Println("fetchLastValues (ignore):", err)
 	}
 
