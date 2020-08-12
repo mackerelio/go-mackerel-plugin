@@ -409,7 +409,7 @@ func TestSetTempfileWithBasename(t *testing.T) {
 	os.Setenv("MACKEREL_PLUGIN_WORKDIR", "/tmp/somewhere")
 	defer os.Setenv("MACKEREL_PLUGIN_WORKDIR", origDir)
 
-	expect2 := "/tmp/somewhere/my-great-tempfile"
+	expect2 := filepath.FromSlash("/tmp/somewhere/my-great-tempfile")
 	p.SetTempfileByBasename("my-great-tempfile")
 	if p.Tempfile != expect2 {
 		t.Errorf("p.SetTempfileByBasename() should set %s, but: %s", expect2, p.Tempfile)
