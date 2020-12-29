@@ -462,7 +462,9 @@ func TestFetchLastValuesReadStateSameTime(t *testing.T) {
 	p.Tempfile = f.Name()
 	now := time.Now()
 	stats := make(map[string]float64)
-	p.saveValues(stats, now)
+	if err := p.saveValues(stats, now); err != nil {
+		t.Fatal(err)
+	}
 
 	_, last, err := p.fetchLastValues(now)
 	if err != errStateRecentlyUpdated {

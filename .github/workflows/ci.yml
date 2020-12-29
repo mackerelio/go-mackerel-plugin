@@ -25,7 +25,9 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
-    - run: make lint
+    - uses: golangci/golangci-lint-action@v2
+      with:
+        version: v1.34
     - run: go test -race -covermode=atomic -coverprofile=profile.cov
       shell: bash
     - uses: shogo82148/actions-goveralls@v1
