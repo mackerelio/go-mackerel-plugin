@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -26,12 +26,12 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
     - run: make lint
-    - run: go test -race -covermode=atomic -coverprofile=.profile.cov
+    - run: go test -race -covermode=atomic -coverprofile=profile.cov
       shell: bash
     - uses: shogo82148/actions-goveralls@v1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-profile: .profile.cov
+        path-to-profile: profile.cov
         parallel: true
         job-number: ${{ strategy.job-index }}
   finish:
