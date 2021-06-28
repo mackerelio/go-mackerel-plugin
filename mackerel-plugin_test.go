@@ -5,8 +5,10 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -436,8 +438,8 @@ func TestFetchLastValuesIfNotExist(t *testing.T) {
 
 func TestFetchLastValuesIfFileIsBroken(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
-	f, cleanup := createTempState(t)
-	defer cleanup() // we will able to use t.Cleanup if go1.14 or later
+	f := createTempState(t)
+	defer f.Close()
 	p.Tempfile = f.Name()
 
 	if _, err := f.Write([]byte("{{{-0")); err != nil {
@@ -457,8 +459,8 @@ func TestFetchLastValuesIfFileIsBroken(t *testing.T) {
 
 func TestFetchLastValuesReadStateSameTime(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
-	f, cleanup := createTempState(t)
-	defer cleanup() // we will able to use t.Cleanup if go1.14 or later
+	f := createTempState(t)
+	defer f.Close()
 	p.Tempfile = f.Name()
 	now := time.Now()
 	stats := make(map[string]float64)
@@ -475,11 +477,47 @@ func TestFetchLastValuesReadStateSameTime(t *testing.T) {
 	}
 }
 
-func createTempState(t testing.TB) (*os.File, func()) {
+func TestSaveStateIfContainsInvalidNumbers(t *testing.T) {
+	p := NewMackerelPlugin(testPHasDiff{})
+	f := createTempState(t)
+	defer f.Close()
+	p.Tempfile = f.Name()
+
+	stats := map[string]float64{
+		"key1": 3.0,
+		"key2": math.Inf(1),
+		"key3": math.Inf(-1),
+		"key4": math.NaN(),
+	}
+	const lastTime = 1624848982
+
+	now := time.Unix(lastTime, 0)
+	if err := p.saveValues(stats, now); err != nil {
+		t.Errorf("saveValues: %v", err)
+	}
+	stats, _, err := p.fetchLastValues(now.Add(time.Second))
+	if err != nil {
+		t.Fatal("fetchLastValues:", err)
+	}
+	want := map[string]float64{
+		"_lastTime": lastTime,
+		"key1":      3.0,
+	}
+	if !reflect.DeepEqual(stats, want) {
+		t.Errorf("saveValues stores only valid numbers: got %v; want %v", stats, want)
+	}
+}
+
+func createTempState(t testing.TB) *os.File {
 	t.Helper()
 	f, err := ioutil.TempFile("", "mackerel-plugin.")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return f, func() { os.Remove(f.Name()) }
+	t.Cleanup(func() {
+		if err := os.Remove(f.Name()); err != nil {
+			t.Fatal(err)
+		}
+	})
+	return f
 }

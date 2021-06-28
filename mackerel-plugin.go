@@ -146,6 +146,16 @@ func (mp *MackerelPlugin) saveValues(values map[string]float64, now time.Time) e
 	}
 	defer f.Close()
 
+	// Since Go 1.15 strconv.ParseFloat returns +Inf if it couldn't parse a string.
+	// But JSON does not accept invalid numbers, such as +Inf, -Inf or NaN.
+	// We perhaps have some plugins that is affected above change,
+	// so saveState should clear invalid numbers in the values before saving it.
+	for k, v := range values {
+		if math.IsInf(v, 0) || math.IsNaN(v) {
+			delete(values, k)
+		}
+	}
+
 	values["_lastTime"] = float64(now.Unix())
 	encoder := json.NewEncoder(f)
 	err = encoder.Encode(values)
