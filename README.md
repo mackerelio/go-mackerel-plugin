@@ -17,7 +17,7 @@ A plugin can specify `Graphs` and `Metrics`.
 - `Unit`: Unit for lines, `float`, `integer`, `percentage`, `seconds`, `milliseconds`, `bytes`, `bytes/sec`, `bits/sec`, `iops` can be specified.
 - `Metrics`: Array of `Metrics` which represents each line.
 
-`Metics` includes followings:
+`Metrics` includes followings:
 
 - `Name`: Key of the line
 - `Label`: Label of the line
