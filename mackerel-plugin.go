@@ -22,8 +22,11 @@ const (
 	UnitFloat          = "float"
 	UnitInteger        = "integer"
 	UnitPercentage     = "percentage"
+	UnitSeconds        = "seconds"
+	UnitMilliseconds   = "milliseconds"
 	UnitBytes          = "bytes"
 	UnitBytesPerSecond = "bytes/sec"
+	UnitBitsPerSecond  = "bits/sec"
 	UnitIOPS           = "iops"
 )
 
