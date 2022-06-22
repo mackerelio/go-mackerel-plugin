@@ -3,46 +3,46 @@ name: Build
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: golangci/golangci-lint-action@v2
-      with:
-        version: v1.43
+      - uses: actions/checkout@v2
+      - uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.43
   test:
     strategy:
       matrix:
-        os: ['ubuntu-20.04', 'macOS-11', 'windows-2019']
-        go: ['1.17.x', '1.16.x']
+        os: ["ubuntu-20.04", "macOS-11", "windows-2019"]
+        go: ["1.18.x", "1.17.x"]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-    - uses: actions/setup-go@v2
-      with:
-        go-version: ${{ matrix.go }}
-    - run: go test -race -covermode=atomic -coverprofile=profile.cov
-      shell: bash
-    - uses: shogo82148/actions-goveralls@v1
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-profile: profile.cov
-        parallel: true
-        job-number: ${{ strategy.job-index }}
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - run: go test -race -covermode=atomic -coverprofile=profile.cov
+        shell: bash
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-profile: profile.cov
+          parallel: true
+          job-number: ${{ strategy.job-index }}
   finish:
     needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
-    - uses: shogo82148/actions-goveralls@v1
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
