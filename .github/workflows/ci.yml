@@ -40,7 +40,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-profile: profile.cov
           parallel: true
-          job-number: ${{ strategy.job-index }}
+          flag-name: Go-${{ matrix.go }}
   finish:
     needs: [lint, test]
     runs-on: ubuntu-latest
