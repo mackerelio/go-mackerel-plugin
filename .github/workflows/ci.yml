@@ -7,9 +7,6 @@ on:
   pull_request:
 jobs:
   lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: golangci/golangci-lint-action@v3
+    uses: mackerelio/workflows/.github/workflows/go-lint.yml@main
   test:
     uses: mackerelio/workflows/.github/workflows/go-test.yml@main
