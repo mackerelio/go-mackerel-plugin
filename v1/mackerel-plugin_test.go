@@ -52,8 +52,8 @@ func TestFormatValues(t *testing.T) {
 
 	prefix := "foo"
 	metric := Metrics{Name: "cmd_get", Label: "Get", Diff: true}
-	stat := map[string]float64{"cmd_get": 1000.0}
-	lastStat := map[string]float64{"cmd_get": 500.0, ".last_diff.cmd_get": 300.0}
+	stat := map[string]float64{"foo.cmd_get": 1000.0}
+	lastStat := map[string]float64{"foo.cmd_get": 500.0, ".last_diff.cmd_get": 300.0}
 	now := time.Unix(1437227240, 0)
 	lastTime := now.Add(time.Second * (-60))
 	mp.formatValues(prefix, metric, stat, lastStat, now, lastTime)
@@ -83,8 +83,8 @@ func (m testMemcachedPlugin) GraphDefinition() map[string]Graphs {
 
 func (m testMemcachedPlugin) FetchMetrics() (map[string]float64, error) {
 	return map[string]float64{
-		"cmd_get": 11.0,
-		"cmd_set": 8.0,
+		"memcached.cmd.cmd_get": 11.0,
+		"memcached.cmd.cmd_set": 8.0,
 	}, nil
 }
 
@@ -122,8 +122,8 @@ type testP struct{}
 
 func (t testP) FetchMetrics() (map[string]float64, error) {
 	return map[string]float64{
-		"bar": 15.0,
-		"baz": 18.0,
+		"bar":      15.0,
+		"fuga.baz": 18.0,
 	}, nil
 }
 
@@ -343,7 +343,7 @@ func (t testPWithWildcard) FetchMetrics() (map[string]float64, error) {
 		"piyo.1.bar": 11,
 		"piyo.2.bar": 12,
 		"piyo.3.bar": 13,
-		"baz":        18.0,
+		"fuga.baz":   18.0,
 	}, nil
 }
 

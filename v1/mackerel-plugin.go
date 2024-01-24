@@ -271,6 +271,9 @@ func (mp *MackerelPlugin) formatValuesWithWildcard(prefix string, metric Metrics
 
 func (mp *MackerelPlugin) formatValues(prefix string, metric Metrics, stat map[string]float64, lastStat map[string]float64, now time.Time, lastTime time.Time) {
 	name := metric.Name
+	if prefix != "" {
+		name = prefix + "." + name
+	}
 	value, ok := stat[name]
 	if !ok {
 		return
