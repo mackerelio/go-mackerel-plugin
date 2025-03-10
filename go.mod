@@ -4,5 +4,5 @@ go 1.18
 
 require (
 	github.com/mackerelio/golib v1.2.1
-	golang.org/x/text v0.17.0
+	golang.org/x/text v0.23.0
 )
