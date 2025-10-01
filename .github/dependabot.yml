@@ -3,8 +3,18 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    cooldown:
+      default-days: 5
+      include:
+        - "*"
+      exclude:
+        - "github.com/mackerelio/*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    cooldown:
+      default-days: 5
+      include:
+        - "*"
