@@ -105,9 +105,9 @@ func (mp *MackerelPlugin) printValue(w io.Writer, key string, value float64, now
 	}
 
 	if value == float64(int(value)) {
-		fmt.Fprintf(w, "%s\t%d\t%d\n", key, int(value), now.Unix())
+		fmt.Fprintf(w, "%s\t%d\t%d\n", key, int(value), now.Unix()) // nolint
 	} else {
-		fmt.Fprintf(w, "%s\t%f\t%d\n", key, value, now.Unix())
+		fmt.Fprintf(w, "%s\t%f\t%d\n", key, value, now.Unix()) // nolint
 	}
 }
 
@@ -127,7 +127,7 @@ func (mp *MackerelPlugin) fetchLastValues(now time.Time) (map[string]float64, ti
 		}
 		return nil, time.Time{}, err
 	}
-	defer f.Close()
+	defer f.Close() // nolint
 
 	stat := make(map[string]float64)
 	decoder := json.NewDecoder(f)
@@ -150,7 +150,7 @@ func (mp *MackerelPlugin) saveValues(values map[string]float64, now time.Time) e
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() // nolint
 
 	// Since Go 1.15 strconv.ParseFloat returns +Inf if it couldn't parse a string.
 	// But JSON does not accept invalid numbers, such as +Inf, -Inf or NaN.
@@ -253,9 +253,9 @@ func (mp *MackerelPlugin) OutputValues() {
 
 func (mp *MackerelPlugin) formatValuesWithWildcard(prefix string, metric Metrics, stat map[string]float64, lastStat map[string]float64, now time.Time, lastTime time.Time) {
 	regexpStr := `\A` + prefix + "." + metric.Name
-	regexpStr = strings.Replace(regexpStr, ".", `\.`, -1)
-	regexpStr = strings.Replace(regexpStr, "*", `[-a-zA-Z0-9_]+`, -1)
-	regexpStr = strings.Replace(regexpStr, "#", `[-a-zA-Z0-9_]+`, -1)
+	regexpStr = strings.ReplaceAll(regexpStr, ".", `\.`)
+	regexpStr = strings.ReplaceAll(regexpStr, "*", `[-a-zA-Z0-9_]+`)
+	regexpStr = strings.ReplaceAll(regexpStr, "#", `[-a-zA-Z0-9_]+`)
 	re, err := regexp.Compile(regexpStr)
 	if err != nil {
 		log.Fatalln("Failed to compile regexp: ", err)
@@ -316,7 +316,7 @@ func title(s string) string {
 
 // OutputDefinitions outputs graph definitions
 func (mp *MackerelPlugin) OutputDefinitions() {
-	fmt.Fprintln(mp.getWriter(), "# mackerel-agent-plugin")
+	fmt.Fprintln(mp.getWriter(), "# mackerel-agent-plugin") // nolint
 	graphs := make(map[string]Graphs)
 	for key, graph := range mp.GraphDefinition() {
 		g := graph
@@ -348,7 +348,7 @@ func (mp *MackerelPlugin) OutputDefinitions() {
 	if err != nil {
 		log.Fatalln("OutputDefinitions: ", err)
 	}
-	fmt.Fprintln(mp.getWriter(), string(b))
+	fmt.Fprintln(mp.getWriter(), string(b)) // nolint
 }
 
 // Run the plugin

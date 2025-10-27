@@ -370,8 +370,7 @@ func TestPluginOutputDefinitionsWithPrefixAndWildcard(t *testing.T) {
 	mp := NewMackerelPlugin(testPWithWildcard{})
 	wtr := &bytes.Buffer{}
 	mp.writer = wtr
-	os.Setenv("MACKEREL_AGENT_PLUGIN_META", "1")
-	defer os.Setenv("MACKEREL_AGENT_PLUGIN_META", "")
+	t.Setenv("MACKEREL_AGENT_PLUGIN_META", "1")
 	mp.Run()
 	expect := `# mackerel-agent-plugin
 {"graphs":{"testPWithWildcard.fuga":{"label":"TestPWithWildcard Fuga","unit":"","metrics":[{"name":"baz","label":"Baz","stacked":false}]},"testPWithWildcard.piyo.#":{"label":"TestPWithWildcard Piyo","unit":"","metrics":[{"name":"bar","label":"Bar","stacked":false}]}}}
@@ -407,9 +406,7 @@ func TestSetTempfileWithBasename(t *testing.T) {
 		t.Errorf("p.SetTempfileByBasename() should set %s, but: %s", expect1, p.Tempfile)
 	}
 
-	origDir := os.Getenv("MACKEREL_PLUGIN_WORKDIR")
-	os.Setenv("MACKEREL_PLUGIN_WORKDIR", "/tmp/somewhere")
-	defer os.Setenv("MACKEREL_PLUGIN_WORKDIR", origDir)
+	t.Setenv("MACKEREL_PLUGIN_WORKDIR", "/tmp/somewhere")
 
 	expect2 := filepath.FromSlash("/tmp/somewhere/my-great-tempfile")
 	p.SetTempfileByBasename("my-great-tempfile")
@@ -439,7 +436,7 @@ func TestFetchLastValuesIfNotExist(t *testing.T) {
 func TestFetchLastValuesIfFileIsBroken(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
 	f := createTempState(t)
-	defer f.Close()
+	defer f.Close() // nolint
 	p.Tempfile = f.Name()
 
 	if _, err := f.Write([]byte("{{{-0")); err != nil {
@@ -460,7 +457,7 @@ func TestFetchLastValuesIfFileIsBroken(t *testing.T) {
 func TestFetchLastValuesReadStateSameTime(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
 	f := createTempState(t)
-	defer f.Close()
+	defer f.Close() // nolint
 	p.Tempfile = f.Name()
 	now := time.Now()
 	stats := make(map[string]float64)
@@ -480,7 +477,7 @@ func TestFetchLastValuesReadStateSameTime(t *testing.T) {
 func TestSaveStateIfContainsInvalidNumbers(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
 	f := createTempState(t)
-	defer f.Close()
+	defer f.Close() // nolint
 	p.Tempfile = f.Name()
 
 	stats := map[string]float64{
