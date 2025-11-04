@@ -7,6 +7,6 @@ on:
   pull_request:
 jobs:
   lint:
-    uses: mackerelio/workflows/.github/workflows/go-lint.yml@70a9988954e45f8b1b8c9acb40c69553839ed46a # v1.4.0
+    uses: mackerelio/workflows/.github/workflows/go-lint.yml@7653987676cc233af59a390d142b5cf6e65a526f # v1.6.0
   test:
-    uses: mackerelio/workflows/.github/workflows/go-test.yml@70a9988954e45f8b1b8c9acb40c69553839ed46a # v1.4.0
+    uses: mackerelio/workflows/.github/workflows/go-test.yml@7653987676cc233af59a390d142b5cf6e65a526f # v1.6.0
