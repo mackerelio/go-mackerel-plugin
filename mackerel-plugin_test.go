@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -435,7 +434,10 @@ func TestFetchLastValuesIfNotExist(t *testing.T) {
 
 func TestFetchLastValuesIfFileIsBroken(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
-	f := createTempState(t)
+	f, err := os.CreateTemp(t.TempDir(), "mackerel-plugin.")
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer f.Close() // nolint
 	p.Tempfile = f.Name()
 
@@ -456,7 +458,10 @@ func TestFetchLastValuesIfFileIsBroken(t *testing.T) {
 
 func TestFetchLastValuesReadStateSameTime(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
-	f := createTempState(t)
+	f, err := os.CreateTemp(t.TempDir(), "mackerel-plugin.")
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer f.Close() // nolint
 	p.Tempfile = f.Name()
 	now := time.Now()
@@ -476,7 +481,10 @@ func TestFetchLastValuesReadStateSameTime(t *testing.T) {
 
 func TestSaveStateIfContainsInvalidNumbers(t *testing.T) {
 	p := NewMackerelPlugin(testPHasDiff{})
-	f := createTempState(t)
+	f, err := os.CreateTemp(t.TempDir(), "mackerel-plugin.")
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer f.Close() // nolint
 	p.Tempfile = f.Name()
 
@@ -492,7 +500,7 @@ func TestSaveStateIfContainsInvalidNumbers(t *testing.T) {
 	if err := p.saveValues(stats, now); err != nil {
 		t.Errorf("saveValues: %v", err)
 	}
-	stats, _, err := p.fetchLastValues(now.Add(time.Second))
+	stats, _, err = p.fetchLastValues(now.Add(time.Second))
 	if err != nil {
 		t.Fatal("fetchLastValues:", err)
 	}
@@ -503,18 +511,4 @@ func TestSaveStateIfContainsInvalidNumbers(t *testing.T) {
 	if !reflect.DeepEqual(stats, want) {
 		t.Errorf("saveValues stores only valid numbers: got %v; want %v", stats, want)
 	}
-}
-
-func createTempState(t testing.TB) *os.File {
-	t.Helper()
-	f, err := ioutil.TempFile("", "mackerel-plugin.")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := os.Remove(f.Name()); err != nil {
-			t.Fatal(err)
-		}
-	})
-	return f
 }
