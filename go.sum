@@ -1,4 +1,4 @@
-github.com/mackerelio/golib v1.2.1 h1:SDcDn6Jw3p9bi1N0bg1Z/ilG5qcBB23qL8xNwrU0gg4=
-github.com/mackerelio/golib v1.2.1/go.mod h1:b8ZaapsHGH1FlEJlCqfD98CqafLeyMevyATDlID2BsM=
+github.com/mackerelio/golib v1.2.2 h1:fQfW1o2KvPyIsAH/7+M2J0gpf2jLu+NyYpDCN79zxW4=
+github.com/mackerelio/golib v1.2.2/go.mod h1:itcSOfrsT5XvkzflFPebT43RrliaKDz2T6YGYt3jclw=
 golang.org/x/text v0.35.0 h1:JOVx6vVDFokkpaq1AEptVzLTpDe9KGpj5tR4/X+ybL8=
 golang.org/x/text v0.35.0/go.mod h1:khi/HExzZJ2pGnjenulevKNX1W67CUy0AsXcNubPGCA=
